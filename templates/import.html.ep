@@ -1,0 +1,7 @@
+% layout 'default', title => 'stage';
+
+%= include 'alerts'
+
+	<div class="home-div">
+	UUU
+  </div>
