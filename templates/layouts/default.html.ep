@@ -52,9 +52,24 @@
         <nav class="navbar navbar-default" role="navigation">
     <div class="container-fluid">
 
+ <div class="navbar-header">
 
+  <span class="navbar-brand">
+      <span ng-show="loadingTracker.active()" class="glyphicon glyphicon-transfer phaidra-red transfer-sign"></span><span ng-hide="loadingTracker.active()" class="glyphicon glyphicon-transfer gray-light transfer-sign"></span>
+  </span>
+  </div>
     <!-- Collect the nav links, forms, and other content for toggling -->
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+
+
+    <% if (is_user_authenticated) { %>
+      <ul class="nav navbar-nav">
+        <li><a href="/import/">Import</a></li>
+      </ul>
+
+      <% } %>
+
+
 
       <ul class="nav navbar-right">
         <% if (is_user_authenticated) { %>
@@ -69,7 +84,7 @@
       </ul>
       <% } %>
       <ul class="nav navbar-right">
-      <span ng-show="loadingTracker.active()" class="glyphicon glyphicon-heart"></span>
+
       </ul>
     </div><!-- /.navbar-collapse -->
   </div><!-- /.container-fluid -->

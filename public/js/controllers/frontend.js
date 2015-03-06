@@ -11,33 +11,115 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
   $scope.initdata = '';
   $scope.current_user = '';
 
-  $scope.projectclasses = [];
+  $scope.acnumbers = [];
+  $scope.inputacnumbers = [];
 
   $scope.init = function (initdata) {
     $scope.initdata = angular.fromJson(initdata);
     $scope.current_user = $scope.initdata.current_user;
     $scope.baseurl = $('head base').attr('href');
-    };
+    if($scope.initdata.load_bags){
+      $scope.getACNumbers();
+    }
+  };
 
-    $scope.closeAlert = function(index) {
-      $scope.alerts.splice(index, 1);
-    };
+  $scope.closeAlert = function(index) {
+    $scope.alerts.splice(index, 1);
+  };
 
-    $scope.signin_open = function () {
+
+
+  $scope.signin_open = function () {
 
       var modalInstance = $modal.open({
             templateUrl: $('head base').attr('href')+'views/modals/loginform.html',
             controller: SigninModalCtrl
       });
+  };
+
+
+    $scope.addACNumbers = function(){
+        var promise = FrontendService.addACNumbers($scope.inputacnumbers);
+        $scope.loadingTracker.addPromise(promise);
+        promise.then(
+          function(response) {
+            $scope.form_disabled = false;
+            $scope.alerts = response.data.alerts;
+            $scope.inputacnumbers = [];
+            $scope.getACNumbers();
+          }
+          ,function(response) {
+            $scope.form_disabled = false;
+            if(response.data){
+              if(response.data.alerts){
+                $scope.alerts = response.data.alerts;
+              }
+            }
+          }
+        );
     };
 
-    $scope.init = function () {
-      if($('#signin').attr('data-open') == 1){
-        $scope.signin_open();
-      }
+    $scope.getACNumbers = function(){
+        var promise = FrontendService.getACNumbers();
+        $scope.loadingTracker.addPromise(promise);
+        promise.then(
+          function(response) {
+            $scope.form_disabled = false;
+            $scope.alerts = response.data.alerts;
+            $scope.acnumbers = response.data.acnumbers;
+          }
+          ,function(response) {
+            $scope.form_disabled = false;
+            if(response.data){
+              if(response.data.alerts){
+                $scope.alerts = response.data.alerts;
+              }
+            }
+          }
+        );
     };
 
-     $scope.setLang = function(langKey) {
+    $scope.fetchMetadata = function(acnumber){
+        var promise = FrontendService.fetchMetadata(acnumber);
+        $scope.loadingTracker.addPromise(promise);
+        promise.then(
+          function(response) {
+            $scope.form_disabled = false;
+            $scope.alerts = response.data.alerts;
+            $scope.getACNumbers();
+          }
+          ,function(response) {
+            $scope.form_disabled = false;
+            if(response.data){
+              if(response.data.alerts){
+                $scope.alerts = response.data.alerts;
+              }
+            }
+          }
+        );
+    };
+
+    $scope.createBag = function(acnumber){
+        var promise = FrontendService.createBag(acnumber);
+        $scope.loadingTracker.addPromise(promise);
+        promise.then(
+          function(response) {
+            $scope.form_disabled = false;
+            $scope.alerts = response.data.alerts;
+            $scope.getACNumbers();
+          }
+          ,function(response) {
+            $scope.form_disabled = false;
+            if(response.data){
+              if(response.data.alerts){
+                $scope.alerts = response.data.alerts;
+              }
+            }
+          }
+        );
+    };
+
+    $scope.setLang = function(langKey) {
       $translate.use(langKey);
    };
 });

@@ -135,36 +135,27 @@ sub startup {
     },
   });
 
-  $self->attr(_mango_bagger => sub { return Mango->new('mongodb://'.$config->{mongodb_bagger}->{username}.':'.$config->{mongodb_bagger}->{password}.'@'.$config->{mongodb_bagger}->{host}.'/'.$config->{mongodb_bagger}->{database}) });
-  $self->helper(mango_bagger => sub { return shift->app->_mango_bagger});
-
   $self->attr(_mango_stage => sub { return Mango->new('mongodb://'.$config->{mongodb_stage}->{username}.':'.$config->{mongodb_stage}->{password}.'@'.$config->{mongodb_stage}->{host}.'/'.$config->{mongodb_stage}->{database}) });
   $self->helper(mango_stage => sub { return shift->app->_mango_stage});
 
   $self->attr(_mango_alephbagimport => sub { return Mango->new('mongodb://'.$config->{mongodb_alephbagimport}->{username}.':'.$config->{mongodb_alephbagimport}->{password}.'@'.$config->{mongodb_alephbagimport}->{host}.'/'.$config->{mongodb_alephbagimport}->{database}) });
   $self->helper(mango_alephbagimport => sub { return shift->app->_mango_alephbagimport});
 
-
-  #$self->log->debug("XXXXXXXXXXXX: ".$self->dumper($config->{mongodb_alephbagimport}));
-#$self->log->debug("XXXXXXXXXXXXX:".'mongodb://'.$config->{mongodb_alephbagimport}->{username}.':'.$config->{mongodb_alephbagimport}->{password}.'@'.$config->{mongodb_alephbagimport}->{host}.'/'.$config->{mongodb_alephbagimport}->{database}."\n".$self->dumper($self->mango_alephbagimport));
-
-#my $res = $self->mango_alephbagimport->db->collection('session')->find_one({_id => "23456789"});
-#$self->log->debug("XXXXXXXXXXXX res: ".$self->dumper($res));
-
-
+  $self->attr(_mango_bagger => sub { return Mango->new('mongodb://'.$config->{mongodb_bagger}->{username}.':'.$config->{mongodb_bagger}->{password}.'@'.$config->{mongodb_bagger}->{host}.'/'.$config->{mongodb_bagger}->{database}) });
+  $self->helper(mango_bagger => sub { return shift->app->_mango_bagger});
 
     # we might possibly save a lot of data to session
     # so we are not going to use cookies, but a database instead
     $self->plugin(
         session => {
-            stash_key     => 'mojox-session',
-            store  => AlephBagImport::Model::Session::Store::Mongo->new(
-          mango => $self->mango_alephbagimport,
-          'log' => $self->log
-        ),
-        transport => MojoX::Session::Transport::Cookie->new(name => 'b_'.$config->{installation_id}),
-            expires_delta => $config->{session_expiration},
-        ip_match      => 1
+          stash_key     => 'mojox-session',
+          store  => AlephBagImport::Model::Session::Store::Mongo->new(
+            mango => $self->mango_alephbagimport,
+            'log' => $self->log
+          ),
+          transport => MojoX::Session::Transport::Cookie->new(name => 'b_'.$config->{installation_id}),
+          expires_delta => $config->{session_expiration},
+          ip_match      => 1
         }
     );
 
@@ -181,7 +172,7 @@ sub startup {
       }else{
         # this will set expire on cookie as well as in store
         $session->expire;
-            $session->flush;
+        $session->flush;
       }
     }else{
       if($self->signature_exists){
@@ -265,7 +256,11 @@ sub startup {
     # if not authenticated, users will be redirected to login page
     my $auth = $r->under('/')->to('authentication#check');
 
-    $auth->route('import') 		->via('get')   ->to('import#import');
+    $auth->route('import')                        ->via('get')    ->to('import#import');
+    $auth->route('import/acnumbers')              ->via('post')   ->to('import#addacnumbers');
+    $auth->route('import/acnumbers')              ->via('get')    ->to('import#getacnumbers');
+    $auth->route('import/:acnumber/fetch')        ->via('post')   ->to('import#fetch');
+    $auth->route('import/:acnumber/createbag')    ->via('post')   ->to('import#createbag');
 
     return $self;
 }

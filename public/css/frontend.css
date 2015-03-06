@@ -117,3 +117,23 @@ body { padding-top: 70px; }
     color: #d9534f;
   }
 }
+
+.import-div {
+  max-width: 80%;
+  margin-left: 30px;
+}
+
+.addacnumbers {
+  height: 80px;
+  min-width: 50%;
+}
+
+.phaidra-red {
+  color: #990000;
+}
+
+.transfer-sign {
+
+  margin: 3px 5px 0 0;
+
+}
