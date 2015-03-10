@@ -1,4 +1,4 @@
-% layout 'default', title => '⚔';
+% layout 'default', title => 'abi';
 
 %= include 'alerts'
 
