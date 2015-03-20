@@ -1,0 +1,15 @@
+<div class="modal">
+  <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Mapping alerts</h4>
+        </div>
+        <div class="modal-body">
+          <alert ng-repeat="alert in mapping_alerts" type="alert.type">{{alert.msg}}</alert>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" ng-click="ok()">Ok</button>
+        </div>
+      </div>
+  </div>
+</div>

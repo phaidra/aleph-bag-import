@@ -55,7 +55,7 @@ sub addacnumbers {
   foreach my $ac (@values){
     if($ac =~ /AC(\d)+/g){
       $self->app->log->debug("adding $ac");
-      $self->mango_alephbagimport->db->collection('acnumbers')->update({ac_number => $ac}, { ac_number => $ac, created => time, updated => time}, { upsert => 1 });
+      $self->mango_alephbagimport->db->collection('acnumbers')->update({ac_number => $ac}, { '$set' => { ac_number => $ac, created => time, updated => time} }, { upsert => 1 });
     }else{
       $self->app->log->error("$ac is not an AC number");
     }
@@ -68,12 +68,11 @@ sub getacnumbers {
   my $self = shift;
   my $res = $self->mango_alephbagimport->db->collection('acnumbers')
     ->find()
-    ->sort({updated => 1})
-		->fields({ _id => 1, ac_number => 1, created => 1, updated => 1})
+    ->sort({ac_number => 1})
+		->fields({ _id => 1, ac_number => 1, created => 1, updated => 1, mapping_alerts => 1})
 		->all();
 
   foreach my $a (@{$res}){
-
     #$self->app->log->debug("Checking requests ".$a->{ac_number});
     ($a->{fetch_status}, $a->{fetched}, $a->{requested}) = $self->get_fetch_status($a->{ac_number});
     #$self->app->log->debug("Checking bags ".$a->{ac_number});
@@ -134,8 +133,14 @@ sub createbag {
     return;
   }
 
+  my $bag_stat = $self->mango_bagger->db->collection('bags')->find({ac_number => $acnumber})->sort({created => -1})->fields({created => 1})->next;
+  if(exists($bag_stat->{created})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => "Creating bag failed, Bag with $acnumber already exists, created: ".$self->get_tsISO($bag_stat->{created}) }]}, status => 400);
+    return;
+  }
+
   $self->app->log->debug("Getting mab for ".$acnumber);
-  my $md_stat = $self->mango_stage->db->collection('aleph.mab')->find({ac_number => $acnumber})->sort({fetched => -1})->fields({xmlref2 => 1})->next;
+  my $md_stat = $self->mango_stage->db->collection('aleph.mab')->find({ac_number => $acnumber})->sort({fetched => -1})->fields({fetched => 1, xmlref2 => 1})->next;
 
   unless($md_stat->{xmlref2}){
     $self->render(json => { alerts => [{ type => 'danger', msg => "Creating bag for $acnumber failed, no mab metadata found" }]}, status => 400);
@@ -144,27 +149,33 @@ sub createbag {
 
   my $mab = $md_stat->{xmlref2};
 
-  $self->app->log->debug("Mapping mab to mods ".$acnumber);
-  my ($mods, $geo) = $self->mab2mods($mab);
+  $self->app->log->debug("Mapping mab (fetched ".$self->get_tsISO($md_stat->{fetched}).") to mods ".$acnumber);
+  my ($mods, $geo) = $self->mab2mods($mab, $acnumber);
 
   $self->app->log->debug("Creating bag ".$acnumber);
   my $project = "UBMaps";
   my $folderid = "UBMaps";
   my $bagid = $project.$folderid.$acnumber.'tif';
-  my $reply = $self->mango_bagger->db->collection('bags')->insert({ ac_number => $acnumber ,bagid => $bagid, file => $acnumber.'.tif', label => $acnumber, folderid => $folderid, tags => [], project => $project, metadata => {mods => $mods, geo => $geo}, status => 'new', assignee => '', created => time, updated => time } );
+  my $reply = $self->mango_bagger->db->collection('bags')->insert({ ac_number => $acnumber, bagid => $bagid, file => $acnumber.'.tif', label => $acnumber, folderid => $folderid, tags => [], project => $project, metadata => {mods => $mods, geo => $geo}, status => 'new', assignee => '', created => time, updated => time } );
   my $oid = $reply->{oid};
-  if($oid){
-    push @{$res->{alerts}}, "Inserting bag $bagid [oid: $oid]";
-  }else{
-    push @{$res->{alerts}}, "Inserting bag $bagid failed";
+  unless($oid){
+    push @{$res->{alerts}}, { type => "danger", msg => "Inserting bag $bagid failed" };
   }
 
   $self->render(json => $res, status => $res->{status});
 }
 
+sub get_tsISO {
+  my $self = shift;
+  my $tsin = shift;
+  my @ts = localtime ($tsin);
+  return sprintf ("%02d.%02d.%04d %02d:%02d:%02d", $ts[3], $ts[4]+1, $ts[5]+1900, $ts[2], $ts[1], $ts[0]);
+}
+
 sub mab2mods {
   my $self = shift;
   my $mab = shift;
+  my $ac = shift;
   my @mods;
   my $geo;
   #my $fixfields = $mab->{record}->{0}->{metadata}->{0}->{oai_marc}->{0}->{fixfield};
@@ -172,18 +183,18 @@ sub mab2mods {
 
   #$self->app->log->debug("varfields: ".$self->app->dumper($fields));
 
-  $self->{mapping_errors} = [];
+  $self->{mapping_alerts} = [];
 
   my $subject_node = $self->get_subject_node();
 
   # 001
   if(exists($fields->{'001'})){
     if($fields->{'001'}->{'i1'} ne '-'){
-      push @{$self->{mapping_errors}}, { type => 'danger', msg => "'001-' not found"};
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'001-' not found"};
     }else{
       foreach my $sf (@{$fields->{'001'}->{subfield}}){
         if($sf->{label} ne 'a'){
-          push @{$self->{mapping_errors}}, { type => 'danger', msg => "'001-".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
+          push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'001-".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
         }else{
           my $acnumber = $sf->{content};
           my $id_node = $self->get_id_node('ac-number', $acnumber);
@@ -198,11 +209,11 @@ sub mab2mods {
   # FIXME: check
   if(exists($fields->{'003'})){
     if($fields->{'003'}->{'i1'} ne '-'){
-      push @{$self->{mapping_errors}}, { type => 'danger', msg => "'003-' not found"};
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'003-' not found"};
     }else{
       foreach my $sf (@{$fields->{'003'}->{subfield}}){
         if($sf->{label} ne 'a'){
-          push @{$self->{mapping_errors}}, { type => 'danger', msg => "'003-".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
+          push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'003-".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
         }else{
           my $parent_id = $sf->{content};
           my $relateditem_node = $self->get_relateditem_node('host');
@@ -218,11 +229,11 @@ sub mab2mods {
   # 037 b a
   if(exists($fields->{'037'})){
     if($fields->{'037'}->{'i1'} ne 'b'){
-      push @{$self->{mapping_errors}}, { type => 'danger', msg => "'037b' not found"};
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'037b' not found"};
     }else{
       foreach my $sf (@{$fields->{'037'}->{subfield}}){
           if($sf->{label} ne 'a'){
-            push @{$self->{mapping_errors}}, { type => 'danger', msg => "'037b".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
+            push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'037b".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
           }else{
             my $lang = $sf->{content};
             my $lang_node = $self->get_lang_node($lang);
@@ -242,7 +253,7 @@ sub mab2mods {
       my $cart_node = $self->get_cartographics_node($geores->{scale});
       push @{$subject_node->{children}}, $cart_node;
     }else{
-      push @{$self->{mapping_errors}}, { type => 'warn', msg => "'034 -' not found"};
+      push @{$self->{mapping_alerts}}, { type => 'info', msg => "'034 -' not found"};
     }
 
   }else{
@@ -258,7 +269,7 @@ sub mab2mods {
         my $cart_node = $self->get_cartographics_node($geores->{scale});
         push @{$subject_node->{children}}, $cart_node;
       }else{
-        push @{$self->{mapping_errors}}, { type => 'danger', msg => "'078 k' not found"};
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'078 k' not found"};
       }
 
     }
@@ -274,6 +285,11 @@ sub mab2mods {
 
   # 200-/200b
   if(exists($fields->{"200"})){
+    my $name_node = $self->get_corporatename_node($fields->{"200"});
+    push @mods, $name_node;
+
+
+=cut
     if($fields->{'200'}->{'i1'} eq '-' || $fields->{'200'}->{'i1'} eq 'b'){
       my $name;
       my $gnd;
@@ -289,8 +305,9 @@ sub mab2mods {
       my $name_node = $self->_get_name_node('corporate', $name, $gnd);
       push @mods, $name_node;
     }else{
-      push @{$self->{mapping_errors}}, { type => 'danger', msg => "'200' found, but not - or b, instead: ".$fields->{'200'}->{'i1'}};
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'200' found, but not - or b, instead: ".$fields->{'200'}->{'i1'}};
     }
+=cut
   }
 
   if(exists($fields->{"304"})){
@@ -372,7 +389,6 @@ sub mab2mods {
     push @mods, $extent_node;
   }
 
-
   # notes 501, 512, 507, 511, 517, 525
   foreach my $code (['501', '512', '507', '511', '517', '525']){
     if(exists($fields->{$code})){
@@ -391,9 +407,11 @@ sub mab2mods {
 
   push @mods, $subject_node;
 
-  if(scalar @{$self->{mapping_errors}} > 0){
-    $self->app->log->error($self->app->dumper($self->{mapping_errors}));
+  if(scalar @{$self->{mapping_alerts}} > 0){
+    $self->app->log->error($self->app->dumper($self->{mapping_alerts}));
   }
+
+  $self->mango_alephbagimport->db->collection('acnumbers')->update({ac_number => $ac}, { '$set' => { mapping_alerts => $self->{mapping_alerts}, updated => time } });
 
   return \@mods, $geo;
 }
@@ -407,7 +425,7 @@ sub get_keyword_node {
     $fields->{$code}->{'i1'} eq 'z' ||
     $fields->{$code}->{'i1'} eq 'f'
     ){
-    push @{$self->{mapping_errors}}, { type => 'danger', msg => "keyword ($code) found, but not g,z,s or f, instead: ".$fields->{$code}->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "keyword ($code) found, but not g,z,s or f, instead: ".$fields->{$code}->{'i1'}};
   }
 
   foreach my $sf (@{$fields->{$code}->{subfield}}){
@@ -440,7 +458,7 @@ sub get_note_node {
   my ($self, $fields, $code) = @_;
 
   unless($fields->{$code}->{'i1'} eq '-'){
-    push @{$self->{mapping_errors}}, { type => 'danger', msg => "note ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
   }
 
   foreach my $sf (@{$fields->{$code}->{subfield}}){
@@ -462,7 +480,7 @@ sub get_extent_node {
   my ($self, $fields, $code) = @_;
 
   unless($fields->{$code}->{'i1'} eq '-'){
-    push @{$self->{mapping_errors}}, { type => 'danger', msg => "extent ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "extent ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
   }
 
   foreach my $sf (@{$fields->{$code}->{subfield}}){
@@ -490,7 +508,7 @@ sub get_date_node {
   my ($self, $fields, $code) = @_;
 
   if($fields->{$code}->{'i1'} ne '-' && $fields->{$code}->{'i1'} ne 'a'){
-    push @{$self->{mapping_errors}}, { type => 'danger', msg => "date ($code) found, but not - or a, instead: ".$fields->{$code}->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "date ($code) found, but not - or a, instead: ".$fields->{$code}->{'i1'}};
   }
 
   my $val;
@@ -530,7 +548,7 @@ sub get_publisher_node {
   my ($self, $fields, $code) = @_;
 
   if($fields->{$code}->{'i1'} ne '-' && $fields->{$code}->{'i1'} ne 'a'){
-    push @{$self->{mapping_errors}}, { type => 'danger', msg => "publisher ($code) found, but not - or a, instead: ".$fields->{$code}->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "publisher ($code) found, but not - or a, instead: ".$fields->{$code}->{'i1'}};
   }
 
   my $val;
@@ -557,7 +575,7 @@ sub get_placeterm_node {
   my ($self, $fields, $code) = @_;
 
   if($fields->{$code}->{'i1'} ne '-' && $fields->{$code}->{'i1'} ne 'a'){
-    push @{$self->{mapping_errors}}, { type => 'danger', msg => "placeterm ($code) found, but not - or a, instead: ".$fields->{$code}->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "placeterm ($code) found, but not - or a, instead: ".$fields->{$code}->{'i1'}};
   }
 
   my $val;
@@ -597,7 +615,7 @@ sub get_edition_node {
   my ($self, $fields, $code) = @_;
 
   unless($fields->{$code}->{'i1'} eq '-'){
-    push @{$self->{mapping_errors}}, { type => 'danger', msg => "edition statement ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "edition statement ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
   }
 
   foreach my $sf (@{$fields->{$code}->{subfield}}){
@@ -619,7 +637,7 @@ sub get_titleinfo_node {
   my ($self, $fields, $code, $type, $subtitle) = @_;
 
   unless($fields->{$code}->{'i1'} eq '-'){
-    push @{$self->{mapping_errors}}, { type => 'danger', msg => "title ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "title ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
   }
 
   foreach my $sf (@{$fields->{$code}->{subfield}}){
@@ -646,7 +664,7 @@ sub get_titleinfo_node {
       return $titleinfo_node;
 
     }else{
-      push @{$self->{mapping_errors}}, { type => 'danger', msg => "title ($code) found, but subfield not 'a', instead: ".$sf->{label}};
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "title ($code) found, but subfield not 'a', instead: ".$sf->{label}};
     }
 
   }
@@ -685,7 +703,7 @@ sub get_name_node {
       if(exists($role_mapping{$role})){
           $role = $role_mapping{$role};
       }else{
-          push @{$self->{mapping_errors}}, { type => 'danger', msg => "unrecognized role: $role"};
+          push @{$self->{mapping_alerts}}, { type => 'danger', msg => "unrecognized role: $role"};
       }
 
       $role_node = $self->get_role_node($role);
@@ -701,18 +719,51 @@ sub get_name_node {
     }else{
       # if the node is not 100- then it should be 100b and 100bb should contain role
       # in which case we should have the $role_node already, so this is a fail
-      push @{$self->{mapping_errors}}, { type => 'danger', msg => "field not '100-' and role not found!"};
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "field not '100-' and role not found!"};
     }
   }
 
   if(defined($role_node)){
     push @{$name_node->{children}}, $role_node;
   }else{
-    push @{$self->{mapping_errors}}, { type => 'danger', msg => "role not found!"};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "role not found!"};
   }
 
   return $name_node;
 }
+
+
+sub get_corporatename_node {
+  my ($self, $corpfield) = @_;
+
+  my $entity_type = $corpfield->{'i1'};
+
+  my $role_node;
+  my $name;
+  my $gnd = 0;
+  my $gnd_id;
+  foreach my $sf (@{$corpfield->{subfield}}){
+
+    # not normalized name
+    if($sf->{label} eq 'a'){
+      $name = $sf->{content};
+    }
+
+    if($sf->{label} eq 'k' || $sf->{label} eq 'g' || $sf->{label} eq 'b'){
+      $name = $sf->{content};
+      $gnd = 1;
+    }
+
+    if($sf->{label} eq '9'){
+      $gnd_id = $sf->{content};
+    }
+
+  }
+
+  return $self->_get_name_node('corporate', $name, $gnd, $gnd_id);
+
+}
+
 
 sub _get_name_node {
   my ($self, $type, $name, $gnd, $gnd_id) = @_;
@@ -722,9 +773,9 @@ sub _get_name_node {
       "input_type" => "node",
       "attributes" => [
         {
-            "xmlname" => $type,
+            "xmlname" => 'type',
             "input_type" => "select",
-            "ui_value" => "personal"
+            "ui_value" => $type
         }
       ],
       "children" => []
@@ -807,7 +858,7 @@ sub get_cartographics_node {
 sub get_coordinates {
   my ($self, $fields, $code) = @_;
 
-  my ($scale, $E1, $E2, $N1, $N2);
+  my ($scale, $W, $E, $N, $S);
 
   foreach my $sf (@{$fields->{$code}->{subfield}}){
     if($sf->{label} eq 'a'){
@@ -817,27 +868,27 @@ sub get_coordinates {
       $scale = $sf->{content};
     }
     elsif($sf->{label} eq 'd'){
-      $E1 = $sf->{content};
+      $W = $sf->{content};
     }
     elsif($sf->{label} eq 'e'){
-      $E2 = $sf->{content};
+      $E = $sf->{content};
     }
     elsif($sf->{label} eq 'f'){
-      $N1 = $sf->{content};
+      $N = $sf->{content};
     }
     elsif($sf->{label} eq 'g'){
-      $N2 = $sf->{content};
+      $S = $sf->{content};
     }
     else{
-      push @{$self->{mapping_errors}}, { type => 'danger', msg => "'$code?".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'$code?".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
     }
 
   }
 
-  my $E1_dec = $self->degrees_to_decimal($E1);
-  my $E2_dec = $self->degrees_to_decimal($E2);
-  my $N1_dec = $self->degrees_to_decimal($N1);
-  my $N2_dec = $self->degrees_to_decimal($N2);
+  my $W_dec = $self->degrees_to_decimal($W);
+  my $E_dec = $self->degrees_to_decimal($E);
+  my $N_dec = $self->degrees_to_decimal($N);
+  my $S_dec = $self->degrees_to_decimal($S);
 
   return {
     scale => $scale,
@@ -856,20 +907,20 @@ sub get_coordinates {
                       {
                         coordinates => [
                            {
-                             latitude => $E1_dec,
-                             longitude => $N2_dec
+                             latitude => $W_dec,
+                             longitude => $S_dec
                            },
                            {
-                             latitude => $E2_dec,
-                             longitude => $N2_dec
+                             latitude => $E_dec,
+                             longitude => $S_dec
                            },
                            {
-                             latitude =>  $E2_dec,
-                             longitude => $N1_dec
+                             latitude =>  $E_dec,
+                             longitude => $N_dec
                            },
                            {
-                             latitude => $E1_dec,
-                             longitude => $N1_dec
+                             latitude => $W_dec,
+                             longitude => $N_dec
                            }
                         ]
                     }
@@ -887,7 +938,7 @@ sub get_coordinates {
 sub degrees_to_decimal {
   my ($self, $aleph_deg) = @_;
 
-  $aleph_deg =~ /(E|N)(\d\d\d)(\d\d)(\d\d)/g;
+  $aleph_deg =~ /(W|E|N|S)(\d\d\d)(\d\d)(\d\d)/g;
 
   return int($2) + (int($3)/60) + (int($4)/3600);
 }

@@ -37,6 +37,18 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
       });
   };
 
+  $scope.mapping_alerts_open = function (ac) {
+
+      var modalInstance = $modal.open({
+            templateUrl: $('head base').attr('href')+'views/modals/mapping_alerts.html',
+            controller: AlertsModalCtrl,
+            resolve: {
+              mapping_alerts: function(){
+               return ac.mapping_alerts;
+              }
+            }
+      });
+  };
 
     $scope.addACNumbers = function(){
         var promise = FrontendService.addACNumbers($scope.inputacnumbers);
@@ -121,8 +133,49 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
 
     $scope.setLang = function(langKey) {
       $translate.use(langKey);
-   };
+    };
+
+    $scope.has_errors = function(ac){
+      if(ac.mapping_alerts){
+        for (var i = 0; i < ac.mapping_alerts.length; i++) {
+          if(ac.mapping_alerts[i].type == 'danger'){
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    $scope.has_warnings = function(ac){
+      if(ac.mapping_alerts){
+        for (var i = 0; i < ac.mapping_alerts.length; i++) {
+          if(ac.mapping_alerts[i].type == 'warning'){
+            return true;
+          }
+        }
+      }
+      return false;
+    }
 });
+
+var AlertsModalCtrl = function ($scope, $modalInstance, FrontendService, promiseTracker, mapping_alerts) {
+
+  $scope.mapping_alerts = mapping_alerts;
+
+  $scope.baseurl = $('head base').attr('href');
+
+  // we will use this to track running ajax requests to show spinner
+  $scope.loadingTracker = promiseTracker('loadingTrackerFrontend');
+
+  $scope.closeAlert = function(index) {
+      $scope.alerts.splice(index, 1);
+  };
+
+  $scope.ok = function () {
+    $modalInstance.dismiss('ok');
+  };
+};
+
 
 var SigninModalCtrl = function ($scope, $modalInstance, FrontendService, promiseTracker) {
 

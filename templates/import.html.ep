@@ -23,7 +23,7 @@
 		</div>
 		<div id="collapseOverview" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOverview">
 			<div class="panel-body" >
-				<input type="text" ng-model="filterinput" class="search-query form-control" placeholder="Filter">
+				<input type="text" ng-model="filterinput.ac_number" class="search-query form-control" placeholder="Filter">
 				<table class="table">
 					<thead>
 						<tr>
@@ -34,17 +34,27 @@
 							<!--<th>Updated</th>-->
 							<th></th>
 							<th></th>
+							<th></th>
+							<th></th>
 						</tr>
 					</thead>
 					<tbody>
-						<tr ng-repeat="ac in acnumbers track by $index | filter:filterinput | orderBy:'updated':true">
+						<tr ng-repeat="ac in acnumbers track by $index | filter:filterinput ">
 							<td>{{ac.ac_number}}</td>
-							<td><span ng-show="ac.fetch_status == 'done'"><span class="glyphicon glyphicon-ok"></span> {{ac.fetched * 1000 | date:'dd.MM.yyyy HH:mm'}}</span><span ng-show="ac.fetch_status && ac.fetch_status != 'done'"><span class="glyphicon glyphicon-hourglass"></span> {{ac.requested * 1000 | date:'dd.MM.yyyy HH:mm'}}</span></td>
-							<td><span ng-show="ac.bag_created">{{ac.bag_created * 1000 | date:'dd.MM.yyyy HH:mm'}}</span></td>
+							<td><span ng-show="ac.fetch_status == 'done'"><span class="glyphicon glyphicon-ok"></span> {{ac.fetched * 1000 | date:'dd.MM.yyyy HH:mm:ss'}}</span><span ng-show="ac.fetch_status && ac.fetch_status != 'done'"><span class="glyphicon glyphicon-hourglass"></span> {{ac.requested * 1000 | date:'dd.MM.yyyy HH:mm:ss'}}</span></td>
+							<td><span ng-show="ac.bag_created">{{ac.bag_created * 1000 | date:'dd.MM.yyyy HH:mm:ss'}}</span></td>
 							<!--<td>{{ac.created * 1000 | date:'dd.MM.yyyy HH:mm'}}</td>-->
 							<!--<td>{{ac.updated * 1000 | date:'dd.MM.yyyy HH:mm'}}</td>-->
 							<td><button class="btn btn-primary" ng-click="fetchMetadata(ac.ac_number)">Fetch</button></td>
 							<td><button class="btn btn-primary" ng-click="createBag(ac.ac_number)">Create bag</button></td>
+							<td>
+								<button ng-if="ac.mapping_alerts.length > 0" class="btn btn-info" ng-class="{'btn-warning': has_warnings(ac), 'btn-danger': has_errors(ac)}" ng-click="mapping_alerts_open(ac)">
+									<span ng-if="has_errors(ac)">Errors</span>
+									<span ng-if="!has_errors(ac) && has_warnings(ac)">Warnings</span>
+									<span ng-if="!has_errors(ac) && !has_warnings(ac) && ac.mapping_alerts.length > 0">Info</span>
+								</button>
+							</td>
+
 						</tr>
 					</tbody>
 				</table>
