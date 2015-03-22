@@ -25,6 +25,12 @@
 
     "validate_uwmetadata":"1",
 
+    "project": "bag_project",
+
+    "folderid": "bag_folderid",
+
+    "back2bagger_url": "/",
+
     "defaults": {
 
     	"metadata_field_language": "de"

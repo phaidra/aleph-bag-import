@@ -14,6 +14,8 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
   $scope.acnumbers = [];
   $scope.inputacnumbers = [];
 
+  $scope.allselected = false;
+
   $scope.init = function (initdata) {
     $scope.initdata = angular.fromJson(initdata);
     $scope.current_user = $scope.initdata.current_user;
@@ -36,6 +38,18 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
             controller: SigninModalCtrl
       });
   };
+
+  $scope.selectAll = function () {
+    if($scope.allselected){
+      for (var i = 0; i < $scope.acnumbers.length; i++) {
+        $scope.acnumbers[i].selected = false;
+      }
+    }else{
+      for (var i = 0; i < $scope.acnumbers.length; i++) {
+	$scope.acnumbers[i].selected = true;
+      }	
+    }
+  }
 
   $scope.mapping_alerts_open = function (ac) {
 
@@ -91,6 +105,16 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
         );
     };
 
+    $scope.fetchMetadataSelected = function(){
+      for (var i = 0; i < $scope.acnumbers.length; i++) {
+	if($scope.acnumbers[i].selected == true){
+	  //$scope.fetchMetadata($scope.acnumbers[i].ac_number);
+	  FrontendService.fetchMetadata($scope.acnumbers[i].ac_number);
+	}
+      }
+      $scope.getACNumbers();
+    }
+
     $scope.fetchMetadata = function(acnumber){
         var promise = FrontendService.fetchMetadata(acnumber);
         $scope.loadingTracker.addPromise(promise);
@@ -110,6 +134,17 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
           }
         );
     };
+
+    $scope.createBagSelected = function(){
+      for (var i = 0; i < $scope.acnumbers.length; i++) {
+        if($scope.acnumbers[i].selected == true){
+           //$scope.createBag($scope.acnumbers[i].ac_number);
+	   FrontendService.createBag($scope.acnumbers[i].ac_number);
+        }
+      }
+	$scope.getACNumbers();
+
+    }
 
     $scope.createBag = function(acnumber){
         var promise = FrontendService.createBag(acnumber);

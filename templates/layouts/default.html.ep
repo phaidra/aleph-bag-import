@@ -8,9 +8,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 
     <% if($config->{proxy_path}){ %>
-    <base href="<%= url_for->path('/'.$config->{proxy_path})->to_abs %>">
+        <base href="<%= url_for->path('/'.$config->{proxy_path})->to_abs.'/' %>">
     <% }else{ %>
-    <base href="<%= url_for->path('/')->to_abs %>">
+        <base href="<%= url_for->path('/')->to_abs %>">
     <% } %>
     <title><%= $title %></title>
 
@@ -61,14 +61,12 @@
     <!-- Collect the nav links, forms, and other content for toggling -->
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 
-
+<ul class="nav navbar-nav">
     <% if (is_user_authenticated) { %>
-      <ul class="nav navbar-nav">
-        <li><a href="/import/">Import</a></li>
-      </ul>
-
+        <li><a href="<%= url_for '/import/' %>">Import</a></li>
       <% } %>
-
+	<li><a href="<%= $config->{back2bagger_url} %>">Return to bagger</a></li>
+</ul>
 
 
       <ul class="nav navbar-right">

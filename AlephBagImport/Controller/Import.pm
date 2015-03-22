@@ -117,7 +117,18 @@ sub fetch {
   my @ts = localtime ($time);
   my $ts_ISO = sprintf ("%04d%02d%02dT%02d%02d%02d", $ts[5]+1900, $ts[4]+1, $ts[3], $ts[2], $ts[1], $ts[0]);
 
-  $self->mango_stage->db->collection('requests')->insert({ts_iso => $ts_ISO, created => time, status => 'new', agent => 'aleph_cat', action => 'update_aleph_2xml', ac_number => $acnumber});
+  my %req = (
+   ts_iso => $ts_ISO, 
+   created => time, 
+   status => 'new', 
+   agent => 'aleph_cat', 
+   action => 'update_aleph_2xml', 
+   ac_number => $acnumber
+  );
+
+  $self->app->log->debug("Inserting request: ".$self->app->dumper(\%req));
+
+  $self->mango_stage->db->collection('requests')->insert(\%req);
 
   $self->render(json => {  }, status => 200);
 }
@@ -153,8 +164,8 @@ sub createbag {
   my ($mods, $geo) = $self->mab2mods($mab, $acnumber);
 
   $self->app->log->debug("Creating bag ".$acnumber);
-  my $project = "UBMaps";
-  my $folderid = "UBMaps";
+  my $project = $self->app->config->{project};
+  my $folderid = $self->app->config->{folderid};
   my $bagid = $project.$folderid.$acnumber.'tif';
   my $reply = $self->mango_bagger->db->collection('bags')->insert({ ac_number => $acnumber, bagid => $bagid, file => $acnumber.'.tif', label => $acnumber, folderid => $folderid, tags => [], project => $project, metadata => {mods => $mods, geo => $geo}, status => 'new', assignee => '', created => time, updated => time } );
   my $oid = $reply->{oid};

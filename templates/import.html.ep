@@ -27,19 +27,21 @@
 				<table class="table">
 					<thead>
 						<tr>
+							<th><input type="checkbox" ng-model="allselected" ng-click="selectAll()"> All</input></th>
 							<th>AC</th>
 							<th>Aleph data fetched</th>
 							<th>Bag created</th>
 							<!--<th>Added</th>-->
 							<!--<th>Updated</th>-->
-							<th></th>
-							<th></th>
+							<th><button class="btn btn-primary" ng-click="fetchMetadataSelected()">Fetch selected</button></th>
+							<th><button class="btn btn-primary" ng-click="createBagSelected()">Create selected</button></th>
 							<th></th>
 							<th></th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr ng-repeat="ac in acnumbers track by $index | filter:filterinput ">
+							<td><input type="checkbox" ng-model="ac.selected"></input></td>
 							<td>{{ac.ac_number}}</td>
 							<td><span ng-show="ac.fetch_status == 'done'"><span class="glyphicon glyphicon-ok"></span> {{ac.fetched * 1000 | date:'dd.MM.yyyy HH:mm:ss'}}</span><span ng-show="ac.fetch_status && ac.fetch_status != 'done'"><span class="glyphicon glyphicon-hourglass"></span> {{ac.requested * 1000 | date:'dd.MM.yyyy HH:mm:ss'}}</span></td>
 							<td><span ng-show="ac.bag_created">{{ac.bag_created * 1000 | date:'dd.MM.yyyy HH:mm:ss'}}</span></td>
