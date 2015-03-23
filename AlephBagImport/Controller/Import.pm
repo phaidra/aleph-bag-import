@@ -975,7 +975,7 @@ sub get_lang_node {
                 {
                     "xmlname" => "authority",
                     "input_type" => "select",
-                    "ui_value" => "iso639-3"
+                    "ui_value" => "iso639-2b"
                 }
             ]
         }
