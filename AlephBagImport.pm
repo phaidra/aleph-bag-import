@@ -259,8 +259,8 @@ sub startup {
     $auth->route('import')                        ->via('get')    ->to('import#import');
     $auth->route('import/acnumbers')              ->via('post')   ->to('import#addacnumbers');
     $auth->route('import/acnumbers')              ->via('get')    ->to('import#getacnumbers');
-    $auth->route('import/:acnumber/fetch')        ->via('post')   ->to('import#fetch');
-    $auth->route('import/:acnumber/createbag')    ->via('post')   ->to('import#createbag');
+    $auth->route('import/fetch')                  ->via('post')   ->to('import#fetch');
+    $auth->route('import/createbag')              ->via('post')   ->to('import#createbag');
 
     return $self;
 }

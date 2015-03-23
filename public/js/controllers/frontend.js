@@ -73,6 +73,8 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
             $scope.alerts = response.data.alerts;
             $scope.inputacnumbers = [];
             $scope.getACNumbers();
+            // we use bindonce so we have to do a full refresh
+            $window.location.reload();
           }
           ,function(response) {
             $scope.form_disabled = false;
@@ -106,23 +108,25 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
     };
 
     $scope.fetchMetadataSelected = function(){
-      for (var i = 0; i < $scope.acnumbers.length; i++) {
-	if($scope.acnumbers[i].selected == true){
-	  //$scope.fetchMetadata($scope.acnumbers[i].ac_number);
-	  FrontendService.fetchMetadata($scope.acnumbers[i].ac_number);
-	}
-      }
-      $scope.getACNumbers();
+        var sel = [];
+	for (var i = 0; i < $scope.acnumbers.length; i++) {
+	  if($scope.acnumbers[i].selected == true){
+	    sel.push($scope.acnumbers[i].ac_number);
+          }
+        }
+        $scope.fetchMetadata(sel);
     }
 
-    $scope.fetchMetadata = function(acnumber){
-        var promise = FrontendService.fetchMetadata(acnumber);
+
+    $scope.fetchMetadata = function(acnumbers){
+        var promise = FrontendService.fetchMetadata(acnumbers);
         $scope.loadingTracker.addPromise(promise);
         promise.then(
           function(response) {
             $scope.form_disabled = false;
             $scope.alerts = response.data.alerts;
             $scope.getACNumbers();
+            $window.location.reload();
           }
           ,function(response) {
             $scope.form_disabled = false;
@@ -136,24 +140,24 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
     };
 
     $scope.createBagSelected = function(){
+      var sel = [];
       for (var i = 0; i < $scope.acnumbers.length; i++) {
         if($scope.acnumbers[i].selected == true){
-           //$scope.createBag($scope.acnumbers[i].ac_number);
-	   FrontendService.createBag($scope.acnumbers[i].ac_number);
+	   sel.push($scope.acnumbers[i].ac_number);
         }
       }
-	$scope.getACNumbers();
-
+	$scope.createBag(sel);
     }
 
-    $scope.createBag = function(acnumber){
-        var promise = FrontendService.createBag(acnumber);
+    $scope.createBag = function(acnumbers){
+        var promise = FrontendService.createBag(acnumbers);
         $scope.loadingTracker.addPromise(promise);
         promise.then(
           function(response) {
             $scope.form_disabled = false;
             $scope.alerts = response.data.alerts;
             $scope.getACNumbers();
+            $window.location.reload();
           }
           ,function(response) {
             $scope.form_disabled = false;

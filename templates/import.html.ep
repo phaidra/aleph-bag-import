@@ -24,10 +24,11 @@
 		<div id="collapseOverview" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOverview">
 			<div class="panel-body" >
 				<input type="text" ng-model="filterinput.ac_number" class="search-query form-control" placeholder="Filter">
-				<table class="table">
+				<table bindonce class="table">
 					<thead>
 						<tr>
 							<th><input type="checkbox" ng-model="allselected" ng-click="selectAll()"> All</input></th>
+							<th></th>
 							<th>AC</th>
 							<th>Aleph data fetched</th>
 							<th>Bag created</th>
@@ -42,18 +43,28 @@
 					<tbody>
 						<tr ng-repeat="ac in acnumbers track by $index | filter:filterinput ">
 							<td><input type="checkbox" ng-model="ac.selected"></input></td>
-							<td>{{ac.ac_number}}</td>
-							<td><span ng-show="ac.fetch_status == 'done'"><span class="glyphicon glyphicon-ok"></span> {{ac.fetched * 1000 | date:'dd.MM.yyyy HH:mm:ss'}}</span><span ng-show="ac.fetch_status && ac.fetch_status != 'done'"><span class="glyphicon glyphicon-hourglass"></span> {{ac.requested * 1000 | date:'dd.MM.yyyy HH:mm:ss'}}</span></td>
-							<td><span ng-show="ac.bag_created">{{ac.bag_created * 1000 | date:'dd.MM.yyyy HH:mm:ss'}}</span></td>
+							<td class="grey" bo-text="$index"></td>
+							<td bo-text="ac.ac_number"></td>
+							<td>
+                                                           <span bo-show="ac.fetch_status == 'done'">
+                                                             <span class="glyphicon glyphicon-ok"></span> 
+                                                             <span bo-bind="ac.fetched * 1000 | date:'dd.MM.yyyy HH:mm:ss'"></span>
+                                                           </span>
+                                                           <span bo-show="ac.fetch_status && ac.fetch_status != 'done'">
+                                                             <span class="glyphicon glyphicon-hourglass"></span> 
+                                                             <span bo-bind="ac.requested * 1000 | date:'dd.MM.yyyy HH:mm:ss'"></span>
+                                                           </span>
+                                                        </td>
+							<td><span bo-show="ac.bag_created" bo-bind="ac.bag_created * 1000 | date:'dd.MM.yyyy HH:mm:ss'"></span></td>
 							<!--<td>{{ac.created * 1000 | date:'dd.MM.yyyy HH:mm'}}</td>-->
 							<!--<td>{{ac.updated * 1000 | date:'dd.MM.yyyy HH:mm'}}</td>-->
 							<td><button class="btn btn-primary" ng-click="fetchMetadata(ac.ac_number)">Fetch</button></td>
 							<td><button class="btn btn-primary" ng-click="createBag(ac.ac_number)">Create bag</button></td>
 							<td>
-								<button ng-if="ac.mapping_alerts.length > 0" class="btn btn-info" ng-class="{'btn-warning': has_warnings(ac), 'btn-danger': has_errors(ac)}" ng-click="mapping_alerts_open(ac)">
-									<span ng-if="has_errors(ac)">Errors</span>
-									<span ng-if="!has_errors(ac) && has_warnings(ac)">Warnings</span>
-									<span ng-if="!has_errors(ac) && !has_warnings(ac) && ac.mapping_alerts.length > 0">Info</span>
+								<button bo-if="ac.mapping_alerts.length > 0" class="btn btn-info" bo-class="{'btn-warning': has_warnings(ac), 'btn-danger': has_errors(ac)}" ng-click="mapping_alerts_open(ac)">
+									<span bo-if="has_errors(ac)">Errors</span>
+									<span bo-if="!has_errors(ac) && has_warnings(ac)">Warnings</span>
+									<span bo-if="!has_errors(ac) && !has_warnings(ac) && ac.mapping_alerts.length > 0">Info</span>
 								</button>
 							</td>
 

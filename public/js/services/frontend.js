@@ -29,19 +29,21 @@ angular.module('frontendService', ['Base64'])
          });
     },
 
-    fetchMetadata: function(acnumber) {
+    fetchMetadata: function(acnumbers) {
 
          return $http({
              method  : 'POST',
-             url     : $('head base').attr('href')+'import/'+acnumber+'/fetch'
+             url     : $('head base').attr('href')+'import/fetch',
+             data: {acnumbers: acnumbers}
          });
     },
 
-    createBag: function(acnumber) {
+    createBag: function(acnumbers) {
 
          return $http({
              method  : 'POST',
-             url     : $('head base').attr('href')+'import/'+acnumber+'/createbag'
+             url     : $('head base').attr('href')+'import/createbag',
+             data: {acnumbers: acnumbers}
          });
     }
 

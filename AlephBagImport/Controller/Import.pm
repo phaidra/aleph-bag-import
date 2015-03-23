@@ -106,71 +106,94 @@ sub get_bag_status {
 
 sub fetch {
   my $self = shift;
-  my $acnumber = $self->stash('acnumber');
+  
+  my $payload = $self->req->json;
+  my $acnumbers = $payload->{acnumbers};
 
-  unless($acnumber =~ /AC(\d)+/g){
-    $self->render(json => { alerts => [{ type => 'danger', msg => "Creating request failed, $acnumber is not an AC number" }]}, status => 400);
-    return;
+  my $res = { alerts => [], status => 200 };
+
+  if(ref($acnumbers) ne 'ARRAY'){
+   $acnumbers = [$acnumbers];
+  }
+ 
+  foreach my $acnumber (@{$acnumbers}){
+
+	  unless($acnumber =~ /AC(\d)+/g){
+	    push @{$res->{alerts}}, { type => "danger", msg =>  "Creating request failed, $acnumber is not an AC number" };	    
+	    next;
+	  }
+
+	  my $time = time ();
+	  my @ts = localtime ($time);
+	  my $ts_ISO = sprintf ("%04d%02d%02dT%02d%02d%02d", $ts[5]+1900, $ts[4]+1, $ts[3], $ts[2], $ts[1], $ts[0]);
+
+	  my %req = (
+	   ts_iso => $ts_ISO, 
+	   created => time, 
+	   status => 'new', 
+	   agent => 'aleph_cat', 
+	   action => 'update_aleph_2xml', 
+	   ac_number => $acnumber
+	  );
+
+	  $self->app->log->debug("Inserting request: ".$self->app->dumper(\%req));
+
+	  $self->mango_stage->db->collection('requests')->insert(\%req);
+
   }
 
-  my $time = time ();
-  my @ts = localtime ($time);
-  my $ts_ISO = sprintf ("%04d%02d%02dT%02d%02d%02d", $ts[5]+1900, $ts[4]+1, $ts[3], $ts[2], $ts[1], $ts[0]);
-
-  my %req = (
-   ts_iso => $ts_ISO, 
-   created => time, 
-   status => 'new', 
-   agent => 'aleph_cat', 
-   action => 'update_aleph_2xml', 
-   ac_number => $acnumber
-  );
-
-  $self->app->log->debug("Inserting request: ".$self->app->dumper(\%req));
-
-  $self->mango_stage->db->collection('requests')->insert(\%req);
-
-  $self->render(json => {  }, status => 200);
+  $self->render(json => $res, status => $res->{status});
 }
 
 sub createbag {
   my $self = shift;
-  my $acnumber = $self->stash('acnumber');
+
+  my $payload = $self->req->json;
+  my $acnumbers = $payload->{acnumbers};
+
+
+  if(ref($acnumbers) ne 'ARRAY'){
+   $acnumbers = [$acnumbers];
+  }
 
   my $res = { alerts => [], status => 200 };
 
-  unless($acnumber =~ /AC(\d)+/g){
-    $self->render(json => { alerts => [{ type => 'danger', msg => "Creating bag failed, $acnumber is not an AC number" }]}, status => 400);
-    return;
-  }
+  foreach my $acnumber (@{$acnumbers}){
 
-  my $bag_stat = $self->mango_bagger->db->collection('bags')->find({ac_number => $acnumber})->sort({created => -1})->fields({created => 1})->next;
-  if(exists($bag_stat->{created})){
-    $self->render(json => { alerts => [{ type => 'danger', msg => "Creating bag failed, Bag with $acnumber already exists, created: ".$self->get_tsISO($bag_stat->{created}) }]}, status => 400);
-    return;
-  }
+	  unless($acnumber =~ /AC(\d)+/g){
+	    push @{$res->{alerts}}, { type => "danger", msg =>  "Creating bag failed, $acnumber is not an AC number" };
+	    next;
+	  }
 
-  $self->app->log->debug("Getting mab for ".$acnumber);
-  my $md_stat = $self->mango_stage->db->collection('aleph.mab')->find({ac_number => $acnumber})->sort({fetched => -1})->fields({fetched => 1, xmlref2 => 1})->next;
+	  my $bag_stat = $self->mango_bagger->db->collection('bags')->find({ac_number => $acnumber})->sort({created => -1})->fields({created => 1})->next;
+	  if(exists($bag_stat->{created})){
+	    push @{$res->{alerts}}, { type => "danger", msg =>  "Creating bag failed, Bag with $acnumber already exists, created: ".$self->get_tsISO($bag_stat->{created})};
+	    next;
+	  }
 
-  unless($md_stat->{xmlref2}){
-    $self->render(json => { alerts => [{ type => 'danger', msg => "Creating bag for $acnumber failed, no mab metadata found" }]}, status => 400);
-    return;
-  }
+	  $self->app->log->debug("Getting mab for ".$acnumber);
+	  my $md_stat = $self->mango_stage->db->collection('aleph.mab')->find({ac_number => $acnumber})->sort({fetched => -1})->fields({fetched => 1, xmlref2 => 1})->next;
 
-  my $mab = $md_stat->{xmlref2};
+	  unless($md_stat->{xmlref2}){
+	    push @{$res->{alerts}}, { type => "danger", msg =>  "Creating bag for $acnumber failed, no mab metadata found"};
+	    next;
+	  }
 
-  $self->app->log->debug("Mapping mab (fetched ".$self->get_tsISO($md_stat->{fetched}).") to mods ".$acnumber);
-  my ($mods, $geo) = $self->mab2mods($mab, $acnumber);
+	  my $mab = $md_stat->{xmlref2};
 
-  $self->app->log->debug("Creating bag ".$acnumber);
-  my $project = $self->app->config->{project};
-  my $folderid = $self->app->config->{folderid};
-  my $bagid = $project.$folderid.$acnumber.'tif';
-  my $reply = $self->mango_bagger->db->collection('bags')->insert({ ac_number => $acnumber, bagid => $bagid, file => $acnumber.'.tif', label => $acnumber, folderid => $folderid, tags => [], project => $project, metadata => {mods => $mods, geo => $geo}, status => 'new', assignee => '', created => time, updated => time } );
-  my $oid = $reply->{oid};
-  unless($oid){
-    push @{$res->{alerts}}, { type => "danger", msg => "Inserting bag $bagid failed" };
+	  $self->app->log->debug("Mapping mab (fetched ".$self->get_tsISO($md_stat->{fetched}).") to mods ".$acnumber);
+	  my ($mods, $geo) = $self->mab2mods($mab, $acnumber);
+
+	  $self->app->log->debug("Creating bag ".$acnumber);
+	  my $project = $self->app->config->{project};
+	  my $folderid = $self->app->config->{folderid};
+	  my $bagid = $project.$folderid.$acnumber.'tif';
+	  my $reply = $self->mango_bagger->db->collection('bags')->insert({ ac_number => $acnumber, bagid => $bagid, file => $acnumber.'.tif', label => $acnumber, folderid => $folderid, tags => [], project => $project, metadata => {mods => $mods, geo => $geo}, status => 'new', assignee => '', created => time, updated => time } );
+	  my $oid = $reply->{oid};
+	  unless($oid){
+	    push @{$res->{alerts}}, { type => "danger", msg => "Inserting bag $bagid failed" };
+  	}
+
   }
 
   $self->render(json => $res, status => $res->{status});
