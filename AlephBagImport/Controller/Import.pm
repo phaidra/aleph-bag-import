@@ -106,7 +106,7 @@ sub get_bag_status {
 
 sub fetch {
   my $self = shift;
-  
+
   my $payload = $self->req->json;
   my $acnumbers = $payload->{acnumbers};
 
@@ -115,11 +115,11 @@ sub fetch {
   if(ref($acnumbers) ne 'ARRAY'){
    $acnumbers = [$acnumbers];
   }
- 
+
   foreach my $acnumber (@{$acnumbers}){
 
 	  unless($acnumber =~ /AC(\d)+/g){
-	    push @{$res->{alerts}}, { type => "danger", msg =>  "Creating request failed, $acnumber is not an AC number" };	    
+	    push @{$res->{alerts}}, { type => "danger", msg =>  "Creating request failed, $acnumber is not an AC number" };
 	    next;
 	  }
 
@@ -128,11 +128,11 @@ sub fetch {
 	  my $ts_ISO = sprintf ("%04d%02d%02dT%02d%02d%02d", $ts[5]+1900, $ts[4]+1, $ts[3], $ts[2], $ts[1], $ts[0]);
 
 	  my %req = (
-	   ts_iso => $ts_ISO, 
-	   created => time, 
-	   status => 'new', 
-	   agent => 'aleph_cat', 
-	   action => 'update_aleph_2xml', 
+	   ts_iso => $ts_ISO,
+	   created => time,
+	   status => 'new',
+	   agent => 'aleph_cat',
+	   action => 'update_aleph_2xml',
 	   ac_number => $acnumber
 	  );
 
@@ -686,7 +686,7 @@ sub get_titleinfo_node {
       };
 
       if($subtitle){
-        $titleinfo_node->{children} = [ { "xmlname" => "subtitle", "input_type" => "input_text", "ui_value" => $val } ];
+        $titleinfo_node->{children} = [ { "xmlname" => "subTitle", "input_type" => "input_text", "ui_value" => $val } ];
       }else{
         $titleinfo_node->{children} = [ { "xmlname" => "title", "input_type" => "input_text", "ui_value" => $val } ];
       }
