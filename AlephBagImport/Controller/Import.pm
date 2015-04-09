@@ -4,15 +4,29 @@ use strict;
 use warnings;
 use diagnostics;
 use v5.10;
+use utf8;
 use Mango::BSON ':bson';
 use Mango::BSON::ObjectID;
 use Mojo::JSON qw(encode_json);
 use Storable qw(dclone);
 use base 'Mojolicious::Controller';
 
-
+# Konkordanz Beziehungskennzeichnung-MARC Relator Code im Rahmen von UB Maps
 our %role_mapping = (
-    "[Kartographer]" => '???'
+
+  # Schubert: Fällt im Englischen mit editor zusammen
+  "[Bearb.]"            => "edt",
+  "[Hrsg.]"             => "edt",
+  "[Drucker]"           => "prt",
+  "[Ill.]"              => "ill",
+  "[Widmungsempfänger]" => "dte",
+  # Schubert: drm steht eigentlich für Technischer Zeichner, es gibt aber ansonsten nur Künstler - in beiden Fällen ist etwas anderes gemeint, aber Technischer Zeichner trifft es m.E.n. noch eher
+  "[Zeichner]"          => "drm",
+  "[Mitarb.]"           => "ctb",
+  "[Kartograph]"        => "ctg",
+  "[Lithograph]"        => "ltg",
+  "[Stecher]"           => "egr"
+
 );
 
 sub home {
@@ -235,7 +249,6 @@ sub mab2mods {
           push @mods, $id_node;
         }
       }
-
     }
   }
 
@@ -256,7 +269,6 @@ sub mab2mods {
           push @mods, $relateditem_node;
         }
       }
-
     }
   }
 
@@ -266,13 +278,13 @@ sub mab2mods {
       push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'037b' not found"};
     }else{
       foreach my $sf (@{$fields->{'037'}->{subfield}}){
-          if($sf->{label} ne 'a'){
-            push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'037b".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
-          }else{
-            my $lang = $sf->{content};
-            my $lang_node = $self->get_lang_node($lang);
-            push @mods, $lang_node;
-          }
+        if($sf->{label} ne 'a'){
+          push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'037b".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
+        }else{
+          my $lang = $sf->{content};
+          my $lang_node = $self->get_lang_node($lang);
+          push @mods, $lang_node;
+        }
       }
     }
   }
@@ -321,52 +333,44 @@ sub mab2mods {
   if(exists($fields->{"200"})){
     my $name_node = $self->get_corporatename_node($fields->{"200"});
     push @mods, $name_node;
-
-
-=cut
-    if($fields->{'200'}->{'i1'} eq '-' || $fields->{'200'}->{'i1'} eq 'b'){
-      my $name;
-      my $gnd;
-      foreach my $sf (@{$fields->{'200'}->{subfield}}){
-        if($sf->{label} ne 'a'){
-          $name = $sf->{content};
-        }
-        if($sf->{label} ne 'p'){
-          $name = $sf->{content};
-          $gnd = 1;
-        }
-      }
-      my $name_node = $self->_get_name_node('corporate', $name, $gnd);
-      push @mods, $name_node;
-    }else{
-      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'200' found, but not - or b, instead: ".$fields->{'200'}->{'i1'}};
-    }
-=cut
   }
 
+  # 304
   if(exists($fields->{"304"})){
-    my $title_uniform = $self->get_titleinfo_node($fields, '304', 'uniform');
+    my $title_uniform = $self->get_titleinfo_node($fields, '304', undef, 'uniform');
     push @mods, $title_uniform;
   }
 
+  # 310
   if(exists($fields->{"310"})){
-    my $title_alternative = $self->get_titleinfo_node($fields, '310', 'alternative');
+    my $title_alternative = $self->get_titleinfo_node($fields, '310', undef, 'alternative');
     push @mods, $title_alternative;
   }
 
-  if(exists($fields->{"341"})){
-    my $title_translated = $self->get_titleinfo_node($fields, '341', 'translated');
-    push @mods, $title_translated;
-  }
-
+  # 331-335
   if(exists($fields->{"331"})){
-    my $title = $self->get_titleinfo_node($fields, '331');
+    my $title = $self->get_titleinfo_node($fields, '331', '335');
     push @mods, $title;
   }
-
-  if(exists($fields->{"335"})){
-    my $subtitle = $self->get_titleinfo_node($fields, '335', undef, 1);
-    push @mods, $subtitle;
+  # 341-343
+  if(exists($fields->{"341"})){
+    my $title = $self->get_titleinfo_node($fields, '341', '343', 'translated');
+    push @mods, $title;
+  }
+  # 345-347
+  if(exists($fields->{"345"})){
+    my $title = $self->get_titleinfo_node($fields, '345', '347', 'translated');
+    push @mods, $title;
+  }
+  # 349-351
+  if(exists($fields->{"349"})){
+    my $title = $self->get_titleinfo_node($fields, '349', '351', 'translated');
+    push @mods, $title;
+  }
+  # 353-355
+  if(exists($fields->{"353"})){
+    my $title = $self->get_titleinfo_node($fields, '353', '355', 'translated');
+    push @mods, $title;
   }
 
   if(exists($fields->{'361'})){
@@ -441,6 +445,8 @@ sub mab2mods {
 
   push @mods, $subject_node;
 
+  push @mods, $self->get_recordInfo_node();
+
   if(scalar @{$self->{mapping_alerts}} > 0){
     $self->app->log->error($self->app->dumper($self->{mapping_alerts}));
   }
@@ -452,15 +458,6 @@ sub mab2mods {
 
 sub get_keyword_node {
   my ($self, $fields, $code) = @_;
-
-  unless(
-    $fields->{$code}->{'i1'} eq 'g' ||
-    $fields->{$code}->{'i1'} eq 's' ||
-    $fields->{$code}->{'i1'} eq 'z' ||
-    $fields->{$code}->{'i1'} eq 'f'
-    ){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "keyword ($code) found, but not g,z,s or f, instead: ".$fields->{$code}->{'i1'}};
-  }
 
   foreach my $sf (@{$fields->{$code}->{subfield}}){
 
@@ -513,9 +510,8 @@ sub get_note_node {
 sub get_extent_node {
   my ($self, $fields, $code) = @_;
 
-  unless($fields->{$code}->{'i1'} eq '-'){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "extent ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
-  }
+  # indicator is ignored for 433
+  #$fields->{$code}->{'i1'}
 
   foreach my $sf (@{$fields->{$code}->{subfield}}){
 
@@ -668,40 +664,41 @@ sub get_edition_node {
 }
 
 sub get_titleinfo_node {
-  my ($self, $fields, $code, $type, $subtitle) = @_;
+  my ($self, $fields, $title_code, $subtitle_code, $type) = @_;
 
-  unless($fields->{$code}->{'i1'} eq '-'){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "title ($code) found, but not -, instead: ".$fields->{$code}->{'i1'}};
+  # for titles, the indicator is ignored
+  # $fields->{$code}->{'i1'}
+
+  my $titleinfo_node = {
+    "xmlname" => "titleInfo",
+    "input_type" => "node"
+  };
+
+  if(defined($type)){
+    $titleinfo_node->{attributes} = [ { "xmlname" => "type", "input_type" => "select", "ui_value" => $type } ];
   }
 
-  foreach my $sf (@{$fields->{$code}->{subfield}}){
-
+  foreach my $sf (@{$fields->{$title_code}->{subfield}}){
     if($sf->{label} eq 'a'){
-
       my $val = $sf->{content};
-
-      my $titleinfo_node = {
-        "xmlname" => "titleInfo",
-        "input_type" => "node"
-      };
-
-      if($subtitle){
-        $titleinfo_node->{children} = [ { "xmlname" => "subTitle", "input_type" => "input_text", "ui_value" => $val } ];
-      }else{
-        $titleinfo_node->{children} = [ { "xmlname" => "title", "input_type" => "input_text", "ui_value" => $val } ];
-      }
-
-      if(defined($type)){
-        $titleinfo_node->{attributes} = [ { "xmlname" => "type", "input_type" => "select", "ui_value" => $type } ];
-      }
-
-      return $titleinfo_node;
-
+      push @{$titleinfo_node->{children}}, { "xmlname" => "title", "input_type" => "input_text", "ui_value" => $val };
     }else{
-      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "title ($code) found, but subfield not 'a', instead: ".$sf->{label}};
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "title ($title_code) found, but subfield not 'a', instead: ".$sf->{label}};
     }
-
   }
+
+  if($subtitle_code){
+    foreach my $sf (@{$fields->{$subtitle_code}->{subfield}}){
+      if($sf->{label} eq 'a'){
+        my $val = $sf->{content};
+        push @{$titleinfo_node->{children}}, { "xmlname" => "subTitle", "input_type" => "input_text", "ui_value" => $val };
+      }else{
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "subtitle ($subtitle_code) found, but subfield not 'a', instead: ".$sf->{label}};
+      }
+    }
+  }
+
+  return $titleinfo_node;
 }
 
 sub get_name_node {
@@ -732,28 +729,27 @@ sub get_name_node {
     # role
     my $role;
     if($sf->{label} eq 'b'){
-
       $role = $sf->{content};
       if(exists($role_mapping{$role})){
           $role = $role_mapping{$role};
       }else{
           push @{$self->{mapping_alerts}}, { type => 'danger', msg => "unrecognized role: $role"};
       }
-
       $role_node = $self->get_role_node($role);
     }
-
   }
 
   my $name_node = $self->_get_name_node('personal', $name, $gnd, $gnd_id);
 
   unless(defined($role_node)){
-    if($entity_type eq '-'){
+    if(($i eq '100' && $entity_type eq '-') || $entity_type eq 'a'){
       $role_node = $self->get_role_node('aut');
-    }else{
+    }elsif($entity_type eq 'b'){
       # if the node is not 100- then it should be 100b and 100bb should contain role
       # in which case we should have the $role_node already, so this is a fail
-      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "field not '100-' and role not found!"};
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "indocator not '-' or 'a' and role not found! field [$i] indicator [$entity_type]"};
+    }else{
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "unrecognized indicator [$entity_type] in field [$i]"};
     }
   }
 
@@ -771,6 +767,10 @@ sub get_corporatename_node {
   my ($self, $corpfield) = @_;
 
   my $entity_type = $corpfield->{'i1'};
+
+  if(($entity_type ne '-') && ($entity_type ne 'b')){
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "unrecognized indicator [$entity_type] in 200 field"};
+  }
 
   my $role_node;
   my $name;
@@ -1002,6 +1002,56 @@ sub get_lang_node {
                 }
             ]
         }
+    ]
+
+  };
+}
+
+sub get_recordInfo_node {
+
+  my ($self) = @_;
+=cut
+                  {
+                      "xmlname" => "recordContentSource",
+                      "input_type" => "input_text",
+                      "ui_value" => ""
+                  },
+=cut
+  return {
+
+    "xmlname" => "recordInfo",
+    "input_type" => "node",
+    "children" => [
+
+                {
+                    "xmlname" => "languageOfCataloging",
+                    "input_type" => "node",
+                    "children" => [
+                      {
+                        "xmlname" => "languageTerm",
+                        "input_type" => "input_text",
+                        "ui_value" => "ger",
+                        "attributes" => [
+                            {
+                                "xmlname" => "type",
+                                "input_type" => "select",
+                                "ui_value" => "code"
+                            },
+                            {
+                                "xmlname" => "authority",
+                                "input_type" => "select",
+                                "ui_value" => "iso639-2b"
+                            }
+                        ]
+                      }
+                    ]
+                },
+                {
+                    "xmlname" => "descriptionStandard",
+                    "input_type" => "select",
+                    "ui_value" => "rakwb"
+                }
+
     ]
 
   };
