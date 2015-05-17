@@ -68,11 +68,11 @@ sub addacnumbers {
   my @values = split(/\W+/, $acnumbers);
   foreach my $ac (@values){
     if($ac =~ /AC(\d)+/g){
-      $self->app->log->debug("adding $ac");
       my $found = $self->mango_alephbagimport->db->collection('acnumbers')->find({ac_number => $ac}, {ac_number => 1})->next;
       if($found){
         $self->app->log->error("skipping $ac, already created");
       }else{
+        $self->app->log->debug("adding $ac");
         $self->mango_alephbagimport->db->collection('acnumbers')->update({ac_number => $ac}, { '$set' => { ac_number => $ac, created => time, updated => time} }, { upsert => 1 });
       }
     }else{
@@ -858,7 +858,7 @@ sub _get_name_node {
 
   if(defined($name)){
     if($type eq 'personal'){
-      if($name ~= m/\s?(\w+)\s?,\s?(\w+)\s?/){
+      if($name =~ m/\s?(\w+)\s?,\s?(\w+)\s?/){
         my $lastname = $1;
         my $firstname = $2;
         push @{$node->{children}}, {
