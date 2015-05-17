@@ -69,7 +69,12 @@ sub addacnumbers {
   foreach my $ac (@values){
     if($ac =~ /AC(\d)+/g){
       $self->app->log->debug("adding $ac");
-      $self->mango_alephbagimport->db->collection('acnumbers')->update({ac_number => $ac}, { '$set' => { ac_number => $ac, created => time, updated => time} }, { upsert => 1 });
+      my $found = $self->mango_alephbagimport->db->collection('acnumbers')->find({ac_number => $ac}, {ac_number => 1})->next;
+      if($found){
+        $self->app->log->error("skipping $ac, already created");
+      }else{
+        $self->mango_alephbagimport->db->collection('acnumbers')->update({ac_number => $ac}, { '$set' => { ac_number => $ac, created => time, updated => time} }, { upsert => 1 });
+      }
     }else{
       $self->app->log->error("$ac is not an AC number");
     }
