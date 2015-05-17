@@ -399,6 +399,41 @@ sub mab2mods {
     push @{$origin_info_node->{children}}, $edition_node;
   }
 
+  # fixed description for all maps
+  my $note_node = {
+    "xmlname" => "note",
+    "input_type" => "input_text",
+    "ui_value" => "Bestand der Kartensammlung der Fachbereichsbibliothek Geographie und Regionalforschung, Universität Wien",
+    "attributes" => [
+      {
+        "xmlname" => "type",
+        "input_type" => "select",
+        "ui_value" => "statement of responsibility"
+      },
+      {
+        "xmlname" => "lang",
+        "input_type" => "input_text",
+        "ui_value" => "ger"
+      }
+    ]
+  };
+  push @mods, $note_node;
+
+  # fixed license for all maps
+  my $license_node = {
+    "xmlname" => "accessCondition",
+    "input_type" => "input_text",
+    "ui_value" => "http://creativecommons.org/publicdomain/mark/1.0/",
+    "attributes" => [
+      {
+        "xmlname" => "type",
+        "input_type" => "select",
+        "ui_value" => "use and reproduction"
+      }
+    ]
+  };
+  push @mods, $license_node;
+
   # place of publication or printing
   if(exists($fields->{'410'})){
     my $place_node = $self->get_placeterm_node($fields, '410');
@@ -747,6 +782,7 @@ sub get_name_node {
     }elsif($entity_type eq 'b'){
       # if the node is not 100- then it should be 100b and 100bb should contain role
       # in which case we should have the $role_node already, so this is a fail
+      # FIXME: ctb
       push @{$self->{mapping_alerts}}, { type => 'danger', msg => "indocator not '-' or 'a' and role not found! field [$i] indicator [$entity_type]"};
     }else{
       push @{$self->{mapping_alerts}}, { type => 'danger', msg => "unrecognized indicator [$entity_type] in field [$i]"};
@@ -816,7 +852,40 @@ sub _get_name_node {
   };
 
   if(defined($name)){
+    if($type eq 'personal'){
+      if($name ~= m/\s?(\w+)\s?,\s?(\w+)\s?/){
+        my $lastname = $1;
+        my $firstname = $2;
+        push @{$node->{children}}, {
+          "xmlname" => "namePart",
+          "input_type" => "input_text",
+          "ui_value" => $firstname,
+          "attributes" => [
+            {
+              "xmlname" => "type",
+              "input_type" => "select",
+              "ui_value" => "given",
+            }
+          ]
+        };
+        push @{$node->{children}}, {
+          "xmlname" => "namePart",
+          "input_type" => "input_text",
+          "ui_value" => $lastname,
+          "attributes" => [
+            {
+              "xmlname" => "type",
+              "input_type" => "select",
+              "ui_value" => "family",
+            }
+          ]
+        };
+      }else{
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "Personal name without 'lastname, firstname' format"};
+      }
+    }else{
       push @{$node->{children}}, { "xmlname" => "namePart",  "ui_value" => $name, "input_type" => "input_text" };
+    }
   }
 
   if($gnd == 1){
