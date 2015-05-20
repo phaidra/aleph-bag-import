@@ -10,6 +10,7 @@ use Mango::BSON::ObjectID;
 use Mojo::JSON qw(encode_json);
 use Storable qw(dclone);
 use base 'Mojolicious::Controller';
+use AlephBagImport::Model::Bkl;
 
 # Konkordanz Beziehungskennzeichnung-MARC Relator Code im Rahmen von UB Maps
 our %role_mapping = (
@@ -257,7 +258,7 @@ sub mab2mods {
     }
   }
 
-  #003
+  # 003
   # FIXME: check
   if(exists($fields->{'003'})){
     if($fields->{'003'}->{'i1'} ne '-'){
@@ -335,9 +336,11 @@ sub mab2mods {
   }
 
   # 200-/200b
-  if(exists($fields->{"200"})){
-    my $name_node = $self->get_corporatename_node($fields->{"200"});
-    push @mods, $name_node;
+  for(my $i=200; $i <= 296; $i=$i+4){
+    if(exists($fields->{"$i"})){
+      my $name_node = $self->get_corporatename_node($fields, $i);
+      push @mods, $name_node;
+    }
   }
 
   # 304
@@ -433,7 +436,7 @@ sub mab2mods {
       {
         "xmlname" => "type",
         "input_type" => "select",
-        "ui_value" => "use and reproduction"
+    1    "ui_value" => "use and reproduction"
       }
     ]
   };
@@ -478,9 +481,16 @@ sub mab2mods {
   # keywords 902, 907, 912 … 947g (..s,z,f)
   for(my $i=902; $i <= 947; $i=$i+5){
     if(exists($fields->{$i})){
-      my $keyword_node = $self->get_keyword_node($fields, $i);
-      push @{$subject_node->{children}}, $keyword_node;
+      my $keyword_nodes = $self->get_keyword_node($fields, $i);
+      push @{$subject_node->{children}}, @$keyword_nodes;
     }
+  }
+
+  # bkl classification
+  my $bklmodel = AlephBagImport::Model::Bkl->new;
+  if(exists($fields->{'700'})){
+    my $bkl_nodes = $self->get_bkl_nodes($fields, '700', $bklmodel);
+    push @mods, @$bkl_nodes;
   }
 
   push @mods, $subject_node;
@@ -499,29 +509,49 @@ sub mab2mods {
 sub get_keyword_node {
   my ($self, $fields, $code) = @_;
 
+  my $keywords;
   foreach my $sf (@{$fields->{$code}->{subfield}}){
 
     my $val;
+    my $xmlname;
+    my $authority;
     if($sf->{label} eq 'g'){
       $val = $sf->{content};
+      $authority = 'gnd';
+      $xmlname = 'geographic';
     }
     if($sf->{label} eq 's'){
       $val = $sf->{content};
+      $xmlname = 'topic';
     }
     if($sf->{label} eq 'z'){
       $val = $sf->{content};
+      $xmlname = 'temporal';
     }
     if($sf->{label} eq 'f'){
       $val = $sf->{content};
+      $xmlname = 'topic';
     }
 
-    return {
-      "xmlname" => "topic",
+    my $kw = {
+      "xmlname" => $xmlname,
       "input_type" => "input_text",
       "ui_value" => $val
     };
 
+    if($authority){
+      push @{$kw->{attributes}}, {
+        "xmlname" => "authority",
+        "input_type" => "select",
+        "ui_value" => "gnd"
+      }
+    }
+
+    push @$keywords, $kw;
+
   }
+
+  return $keywords;
 
 }
 
@@ -544,6 +574,58 @@ sub get_note_node {
       };
     }
   }
+
+}
+
+sub get_bkl_node {
+  my ($self, $fields, $code, $bklmodel) = @_;
+
+  my $i = $fields->{$code}->{'i1'};
+
+  my $bkls;
+  
+  if($i eq 'f'){
+
+    foreach my $sf (@{$fields->{$code}->{subfield}}){
+
+      if($sf->{label} eq 'a'){
+        my $val = $sf->{content};
+
+        push @$bkls {
+          "xmlname" => "classification",
+          "input_type" => "input_text",
+          "input_value" => $val
+          "children" => [
+            {
+              "xmlname" => "authority",
+              "input_type" => "select",
+              "ui_value" => "bkl"
+            }
+          ]
+        };
+
+        push @$bkls, {
+          "xmlname" => "classification",
+          "input_type" => "input_text",
+          "children" => [
+            {
+              "xmlname" => "authorityURI",
+              "input_type" => "select",
+              "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/"
+            },
+            {
+              "xmlname" => "valueURI",
+              "input_type" => "select",
+              "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_10/".$bklmodel->get_tid($self, $val);
+            }
+          ]
+        };
+      }
+    }
+
+  }
+
+  return $bkls;
 
 }
 
@@ -785,10 +867,7 @@ sub get_name_node {
     if(($i eq '100' && $entity_type eq '-') || $entity_type eq 'a'){
       $role_node = $self->get_role_node('aut');
     }elsif($entity_type eq 'b'){
-      # if the node is not 100- then it should be 100b and 100bb should contain role
-      # in which case we should have the $role_node already, so this is a fail
-      # FIXME: ctb
-      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "indocator not '-' or 'a' and role not found! field [$i] indicator [$entity_type]"};
+      $role_node = $self->get_role_node('ctb');
     }else{
       push @{$self->{mapping_alerts}}, { type => 'danger', msg => "unrecognized indicator [$entity_type] in field [$i]"};
     }
@@ -797,7 +876,7 @@ sub get_name_node {
   if(defined($role_node)){
     push @{$name_node->{children}}, $role_node;
   }else{
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "role not found!"};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "1XX role not found!"};
   }
 
   return $name_node;
@@ -805,11 +884,11 @@ sub get_name_node {
 
 
 sub get_corporatename_node {
-  my ($self, $corpfield) = @_;
+  my ($self, $fields, $i) = @_;
 
-  my $entity_type = $corpfield->{'i1'};
+  my $entity_type = $fields->{"$i"}->{'i1'};
 
-  if(($entity_type ne '-') && ($entity_type ne 'b')){
+  if(($entity_type ne '-') && ($entity_type ne 'b') ){
     push @{$self->{mapping_alerts}}, { type => 'danger', msg => "unrecognized indicator [$entity_type] in 200 field"};
   }
 
@@ -817,7 +896,7 @@ sub get_corporatename_node {
   my $name;
   my $gnd = 0;
   my $gnd_id;
-  foreach my $sf (@{$corpfield->{subfield}}){
+  foreach my $sf (@{$fields->{"$i"}->{subfield}}){
 
     # not normalized name
     if($sf->{label} eq 'a'){
@@ -833,6 +912,22 @@ sub get_corporatename_node {
       $gnd_id = $sf->{content};
     }
 
+  }
+
+  my $name_node = $self->_get_name_node('corporate', $name, $gnd, $gnd_id);
+
+  if(($i eq '200' && $entity_type eq '-') || $entity_type eq 'a'){
+    $role_node = $self->get_role_node('aut');
+  }elsif($entity_type eq 'b'){
+    $role_node = $self->get_role_node('ctb');
+  }else{
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "unrecognized indicator [$entity_type] in field [$i]"};
+  }
+
+  if(defined($role_node)){
+    push @{$name_node->{children}}, $role_node;
+  }else{
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "2XX role not found!"};
   }
 
   return $self->_get_name_node('corporate', $name, $gnd, $gnd_id);
@@ -886,7 +981,7 @@ sub _get_name_node {
           ]
         };
       }else{
-        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "Personal name without 'lastname, firstname' format"};
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "Personal name without 'lastname, firstname' format: $name"};
       }
     }else{
       push @{$node->{children}}, { "xmlname" => "namePart",  "ui_value" => $name, "input_type" => "input_text" };
@@ -898,6 +993,9 @@ sub _get_name_node {
   }
 
   if(defined($gnd_id)){
+    if($gnd_id =~ m/\(\w+\)(\d+)/){
+      $gnd_id = $1;
+    }
     push @{$node->{attributes}}, { "xmlname" => "authorityURI", "ui_value" => "http://d-nb.info/gnd/", "input_type" => "input_text" };
     push @{$node->{attributes}}, { "xmlname" => "valueURI", "ui_value" => "http://d-nb.info/gnd/$gnd_id", "input_type" => "input_text" };
   }
@@ -1084,19 +1182,22 @@ sub get_lang_node {
 sub get_recordInfo_node {
 
   my ($self) = @_;
-=cut
-                  {
-                      "xmlname" => "recordContentSource",
-                      "input_type" => "input_text",
-                      "ui_value" => ""
-                  },
-=cut
+ 
   return {
 
     "xmlname" => "recordInfo",
     "input_type" => "node",
     "children" => [
-
+		{
+		    "xmlname" => "recordContentSource",
+                    "input_type" => "input_text",
+                    "ui_value" => "Universitätsbibliothek Wien"
+		},
+                {
+                    "xmlname" => "recordOrigin",
+                    "input_type" => "input_text",
+                    "ui_value" => "Maschinell erzeugt"
+                },
                 {
                     "xmlname" => "languageOfCataloging",
                     "input_type" => "node",
