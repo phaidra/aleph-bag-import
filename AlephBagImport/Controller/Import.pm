@@ -436,7 +436,7 @@ sub mab2mods {
       {
         "xmlname" => "type",
         "input_type" => "select",
-    1    "ui_value" => "use and reproduction"
+        "ui_value" => "use and reproduction"
       }
     ]
   };
@@ -489,8 +489,10 @@ sub mab2mods {
   # bkl classification
   my $bklmodel = AlephBagImport::Model::Bkl->new;
   if(exists($fields->{'700'})){
-    my $bkl_nodes = $self->get_bkl_nodes($fields, '700', $bklmodel);
-    push @mods, @$bkl_nodes;
+    if($fields->{'700'}->{'i1'} eq 'f'){
+      my $bkl_nodes = $self->get_bkl_nodes($fields, '700', $bklmodel);
+      push @mods, @$bkl_nodes;        
+    }
   }
 
   push @mods, $subject_node;
@@ -577,7 +579,7 @@ sub get_note_node {
 
 }
 
-sub get_bkl_node {
+sub get_bkl_nodes {
   my ($self, $fields, $code, $bklmodel) = @_;
 
   my $i = $fields->{$code}->{'i1'};
@@ -590,12 +592,11 @@ sub get_bkl_node {
 
       if($sf->{label} eq 'a'){
         my $val = $sf->{content};
-
-        push @$bkls {
+        push @$bkls, {
           "xmlname" => "classification",
           "input_type" => "input_text",
-          "input_value" => $val
-          "children" => [
+          "ui_value" => $val,
+          "attributes" => [
             {
               "xmlname" => "authority",
               "input_type" => "select",
@@ -607,7 +608,7 @@ sub get_bkl_node {
         push @$bkls, {
           "xmlname" => "classification",
           "input_type" => "input_text",
-          "children" => [
+          "attributes" => [
             {
               "xmlname" => "authorityURI",
               "input_type" => "select",
@@ -616,7 +617,7 @@ sub get_bkl_node {
             {
               "xmlname" => "valueURI",
               "input_type" => "select",
-              "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_10/".$bklmodel->get_tid($self, $val);
+              "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_10/".$bklmodel->get_tid($self, $val)
             }
           ]
         };
@@ -993,7 +994,7 @@ sub _get_name_node {
   }
 
   if(defined($gnd_id)){
-    if($gnd_id =~ m/\(\w+\)(\d+)/){
+    if($gnd_id =~ m/\([\w+-]+\)(\d+)/){
       $gnd_id = $1;
     }
     push @{$node->{attributes}}, { "xmlname" => "authorityURI", "ui_value" => "http://d-nb.info/gnd/", "input_type" => "input_text" };
