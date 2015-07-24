@@ -231,8 +231,8 @@ sub mab2mods {
   my $mab = shift;
   my $ac = shift;
   my @mods;
-  my $geo;
-  my $used_keywords;
+  my $geo;  
+  my %used_keywords;
   #my $fixfields = $mab->{record}->{0}->{metadata}->{0}->{oai_marc}->{0}->{fixfield};
   my $fields = $mab->{record}[0]->{metadata}[0]->{oai_marc}[0]->{varfield};
 
@@ -289,234 +289,234 @@ sub mab2mods {
 
   for my $field (@$fields){ 
 
-  my $fieldid = $field->{'id'};
-  my $fieldidint = int($field->{'id'});
+    my $fieldid = $field->{'id'};
+    my $fieldidint = int($field->{'id'});
 
-  # 001
-  if($fieldid eq '001'){
-    if($field->{'i1'} ne '-'){
-      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'001-' not found"};
-    }else{
-      foreach my $sf (@{$field->{subfield}}){
-        if($sf->{label} ne 'a'){
-          push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'001-".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
-        }else{
-          my $acnumber = $sf->{content};
-          my $id_node = $self->get_id_node('ac-number', $acnumber);
-          push @mods, $id_node;
+    # 001
+    if($fieldid eq '001'){
+      if($field->{'i1'} ne '-'){
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'001-' not found"};
+      }else{
+        foreach my $sf (@{$field->{subfield}}){
+          if($sf->{label} ne 'a'){
+            push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'001-".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
+          }else{
+            my $acnumber = $sf->{content};
+            my $id_node = $self->get_id_node('ac-number', $acnumber);
+            push @mods, $id_node;
+          }
         }
       }
     }
-  }
 
-  # 003
-  # FIXME: check
-  if($fieldid eq '003'){
-    if($field->{'i1'} ne '-'){
-      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'003-' not found"};
-    }else{
-      foreach my $sf (@{$field->{subfield}}){
-        if($sf->{label} ne 'a'){
-          push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'003-".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
-        }else{
-          my $parent_id = $sf->{content};
-          my $relateditem_node = $self->get_relateditem_node('host');
-          my $id_node = $self->get_id_node('local', $parent_id);
-          push @{$relateditem_node->{children}}, $id_node;
-          push @mods, $relateditem_node;
+    # 003
+    # FIXME: check
+    if($fieldid eq '003'){
+      if($field->{'i1'} ne '-'){
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'003-' not found"};
+      }else{
+        foreach my $sf (@{$field->{subfield}}){
+          if($sf->{label} ne 'a'){
+            push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'003-".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
+          }else{
+            my $parent_id = $sf->{content};
+            my $relateditem_node = $self->get_relateditem_node('host');
+            my $id_node = $self->get_id_node('local', $parent_id);
+            push @{$relateditem_node->{children}}, $id_node;
+            push @mods, $relateditem_node;
+          }
         }
       }
     }
-  }
 
-  # 037 b a
-  if($fieldid eq '037'){
-    if($field->{'i1'} ne 'b'){
-      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'037b' not found"};
-    }else{
-      foreach my $sf (@{$field->{subfield}}){
-        if($sf->{label} ne 'a'){
-          push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'037b".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
-        }else{
-          my $lang = $sf->{content};
-          my $lang_node = $self->get_lang_node($lang);
-          push @mods, $lang_node;
+    # 037 b a
+    if($fieldid eq '037'){
+      if($field->{'i1'} ne 'b'){
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'037b' not found"};
+      }else{
+        foreach my $sf (@{$field->{subfield}}){
+          if($sf->{label} ne 'a'){
+            push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'037b".$sf->{label}."' found, missing mapping. Value:".$sf->{content}};
+          }else{
+            my $lang = $sf->{content};
+            my $lang_node = $self->get_lang_node($lang);
+            push @mods, $lang_node;
+          }
         }
       }
     }
-  }
 
-  # 034 -
-  # geocoordinates (new field)
-  if($fieldid eq '034'){
-    if($field->{'i1'} eq '-'){
-      my $geores = $self->get_coordinates($field);
-      $geo = $geores->{geo};
-      # TODO: add projection if possible!
-      my $cart_node = $self->get_cartographics_node($geores->{scale});
-      push @{$subject_node->{children}}, $cart_node;
-    }else{
-      push @{$self->{mapping_alerts}}, { type => 'info', msg => "'034 -' not found"};
-    }
-
-  }else{
-
-    # 078 k
-    # geocoordinates (old field)
-    if($fieldid eq '078'){
-      if($field->{'i1'} eq 'k'){
+    # 034 -
+    # geocoordinates (new field)
+    if($fieldid eq '034'){
+      if($field->{'i1'} eq '-'){
         my $geores = $self->get_coordinates($field);
         $geo = $geores->{geo};
         # TODO: add projection if possible!
         my $cart_node = $self->get_cartographics_node($geores->{scale});
         push @{$subject_node->{children}}, $cart_node;
       }else{
-        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'078 k' not found"};
+        push @{$self->{mapping_alerts}}, { type => 'info', msg => "'034 -' not found"};
       }
 
-    }
-  }
+    }else{
 
-  # 100-/100b
-  if($fieldidint >= 100 && $fieldidint <= 196 && ($fieldidint % 4 == 0 )){
-    my $name_node = $self->get_name_node($field);
-    push @mods, $name_node;
-  }
+      # 078 k
+      # geocoordinates (old field)
+      if($fieldid eq '078'){
+        if($field->{'i1'} eq 'k'){
+          my $geores = $self->get_coordinates($field);
+          $geo = $geores->{geo};
+          # TODO: add projection if possible!
+          my $cart_node = $self->get_cartographics_node($geores->{scale});
+          push @{$subject_node->{children}}, $cart_node;
+        }else{
+          push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'078 k' not found"};
+        }
 
-  # 200-/200b
-  if($fieldidint >= 200 && $fieldidint <= 296 && ($fieldidint % 4 == 0 )){ 
-    my $name_node = $self->get_corporatename_node($field);
-    push @mods, $name_node;
-  }
-
-  # 304
-  if($fieldid eq "304"){
-    my $title_uniform = $self->get_titleinfo_node($field, undef, 'uniform');
-    push @mods, $title_uniform;
-  }
-
-  # 310
-  if($fieldid eq "310"){
-    my $title_alternative = $self->get_titleinfo_node($field, undef, 'alternative');
-    push @mods, $title_alternative;
-  }
-
-  # 331-335
-  if($fieldid eq "331"){
-    my $subtitle_field;
-    for my $f (@$fields){ 
-      if($f->{id} eq '335'){
-	$subtitle_field = $f; last;
       }
     }
 
-    my $title = $self->get_titleinfo_node($field, $subtitle_field);
-    push @mods, $title;
-  }
-  # 341-343
-  if($fieldid eq "341"){
-    my $subtitle_field;
-    for my $f (@$fields){  
-      if($f->{id} eq '343'){
-        $subtitle_field = $f; last;
+    # 100-/100b
+    if($fieldidint >= 100 && $fieldidint <= 196 && ($fieldidint % 4 == 0 )){
+      my $name_node = $self->get_name_node($field);
+      push @mods, $name_node;
+    }
+
+    # 200-/200b
+    if($fieldidint >= 200 && $fieldidint <= 296 && ($fieldidint % 4 == 0 )){ 
+      my $name_node = $self->get_corporatename_node($field);
+      push @mods, $name_node;
+    }
+
+    # 304
+    if($fieldid eq "304"){
+      my $title_uniform = $self->get_titleinfo_node($field, undef, 'uniform');
+      push @mods, $title_uniform;
+    }
+
+    # 310
+    if($fieldid eq "310"){
+      my $title_alternative = $self->get_titleinfo_node($field, undef, 'alternative');
+      push @mods, $title_alternative;
+    }
+
+    # 331-335
+    if($fieldid eq "331"){
+      my $subtitle_field;
+      for my $f (@$fields){ 
+        if($f->{id} eq '335'){
+  	$subtitle_field = $f; last;
+        }
+      }
+
+      my $title = $self->get_titleinfo_node($field, $subtitle_field);
+      push @mods, $title;
+    }
+    # 341-343
+    if($fieldid eq "341"){
+      my $subtitle_field;
+      for my $f (@$fields){  
+        if($f->{id} eq '343'){
+          $subtitle_field = $f; last;
+        }
+      }
+      my $title = $self->get_titleinfo_node($field, $subtitle_field, 'translated');
+      push @mods, $title;
+    }
+    # 345-347
+    if($fieldid eq "345"){
+      my $subtitle_field;
+      for my $f (@$fields){
+        if($f->{id} eq '347'){
+          $subtitle_field = $f; last;
+        }
+      }
+      my $title = $self->get_titleinfo_node($field, $subtitle_field, 'translated');
+      push @mods, $title;
+    }
+    # 349-351
+    if($fieldid eq "349"){
+      my $subtitle_field;
+      for my $f (@$fields){
+        if($f->{id} eq '351'){
+          $subtitle_field = $f; last;
+        }
+      }
+      my $title = $self->get_titleinfo_node($field, $subtitle_field, 'translated');
+      push @mods, $title;
+    }
+    # 353-355
+    if($fieldid eq "353"){
+      my $subtitle_field;
+      for my $f (@$fields){
+        if($f->{id} eq '355'){
+          $subtitle_field = $f; last;
+        }
+      }
+      my $title = $self->get_titleinfo_node($field, $subtitle_field, 'translated');
+      push @mods, $title;
+    }
+
+    if($fieldid eq "361"){
+      my $relateditem_node = $self->get_relateditem_node('constituent');
+      my $title_node = $self->get_titleinfo_node($field);
+      push @{$relateditem_node->{children}}, $title_node;
+      push @mods, $relateditem_node;
+    }
+
+    if($fieldid eq "451"){
+      my $relateditem_node = $self->get_relateditem_node('series');
+      my $title_node = $self->get_titleinfo_node($field);
+      push @{$relateditem_node->{children}}, $title_node;
+      push @mods, $relateditem_node;
+    }
+
+    # edition
+    if($fieldid eq "403"){
+      my $edition_node = $self->get_edition_node($field);
+      push @{$origin_info_node->{children}}, $edition_node;
+    }
+
+    # place of publication or printing
+    if($fieldid eq '410'){
+      my $place_node = $self->get_placeterm_node($field);
+      push @{$origin_info_node->{children}}, $place_node;
+    }
+
+    # publisher or printer
+    if($fieldid eq '412'){
+      my $publisher_node = $self->get_publisher_node($field);
+      push @{$origin_info_node->{children}}, $publisher_node;
+    }
+
+    # extent
+    if($fieldid eq '433'){
+      my $extent_node = $self->get_extent_node($field);
+      push @mods, $extent_node;
+    }
+
+    # notes 501, 512, 507, 511, 517, 525
+    foreach my $code (['501', '512', '507', '511', '517', '525']){
+      if($fieldid eq $code){
+        my $note_node = $self->get_note_node($field);
+        push @mods, $note_node;
       }
     }
-    my $title = $self->get_titleinfo_node($field, $subtitle_field, 'translated');
-    push @mods, $title;
-  }
-  # 345-347
-  if($fieldid eq "345"){
-    my $subtitle_field;
-    for my $f (@$fields){
-      if($f->{id} eq '347'){
-        $subtitle_field = $f; last;
+
+    # keywords 902, 907, 912 … 947g (..s,z,f)    
+    if($fieldidint >= 902 && $fieldidint <= 947 && (($fieldidint+3) % 5 == 0 )){
+      my $keyword_nodes = $self->get_keyword_node($field, \%used_keywords);      
+      push @{$subject_node->{children}}, @$keyword_nodes if defined($keyword_nodes);
+    }
+
+    # bkl classification
+    if($fieldid eq '700'){
+      if($field->{'i1'} eq 'f'){
+        my $bkl_nodes = $self->get_bkl_nodes($field, $bklmodel);
+        push @mods, @$bkl_nodes;        
       }
     }
-    my $title = $self->get_titleinfo_node($field, $subtitle_field, 'translated');
-    push @mods, $title;
-  }
-  # 349-351
-  if($fieldid eq "349"){
-    my $subtitle_field;
-    for my $f (@$fields){
-      if($f->{id} eq '351'){
-        $subtitle_field = $f; last;
-      }
-    }
-    my $title = $self->get_titleinfo_node($field, $subtitle_field, 'translated');
-    push @mods, $title;
-  }
-  # 353-355
-  if($fieldid eq "353"){
-    my $subtitle_field;
-    for my $f (@$fields){
-      if($f->{id} eq '355'){
-        $subtitle_field = $f; last;
-      }
-    }
-    my $title = $self->get_titleinfo_node($field, $subtitle_field, 'translated');
-    push @mods, $title;
-  }
-
-  if($fieldid eq "361"){
-    my $relateditem_node = $self->get_relateditem_node('constituent');
-    my $title_node = $self->get_titleinfo_node($field);
-    push @{$relateditem_node->{children}}, $title_node;
-    push @mods, $relateditem_node;
-  }
-
-  if($fieldid eq "451"){
-    my $relateditem_node = $self->get_relateditem_node('series');
-    my $title_node = $self->get_titleinfo_node($field);
-    push @{$relateditem_node->{children}}, $title_node;
-    push @mods, $relateditem_node;
-  }
-
-  # edition
-  if($fieldid eq "403"){
-    my $edition_node = $self->get_edition_node($field);
-    push @{$origin_info_node->{children}}, $edition_node;
-  }
-
-  # place of publication or printing
-  if($fieldid eq '410'){
-    my $place_node = $self->get_placeterm_node($field);
-    push @{$origin_info_node->{children}}, $place_node;
-  }
-
-  # publisher or printer
-  if($fieldid eq '412'){
-    my $publisher_node = $self->get_publisher_node($field);
-    push @{$origin_info_node->{children}}, $publisher_node;
-  }
-
-  # extent
-  if($fieldid eq '433'){
-    my $extent_node = $self->get_extent_node($field);
-    push @mods, $extent_node;
-  }
-
-  # notes 501, 512, 507, 511, 517, 525
-  foreach my $code (['501', '512', '507', '511', '517', '525']){
-    if($fieldid eq $code){
-      my $note_node = $self->get_note_node($field);
-      push @mods, $note_node;
-    }
-  }
-
-  # keywords 902, 907, 912 … 947g (..s,z,f)
-  if($fieldidint >= 902 && $fieldidint <= 947 && (($fieldidint+3) % 5 == 0 )){
-    my $keyword_nodes = $self->get_keyword_node($field, $used_keywords);
-    push @{$subject_node->{children}}, @$keyword_nodes;
-  }
-
-  # bkl classification
-  if($fieldid eq '700'){
-    if($field->{'i1'} eq 'f'){
-      my $bkl_nodes = $self->get_bkl_nodes($field, $bklmodel);
-      push @mods, @$bkl_nodes;        
-    }
-  }
 
   }
 
@@ -585,13 +585,19 @@ sub get_keyword_node {
     my $val = $sf->{content};
     my $lab = $sf->{label};
     my $ind = $field->{i1};
+    my $skip = 0;
     
-    if($used_keywords->{$ind.$lab.$val}){
-      push @{$self->{mapping_alerts}}, { type => 'info', msg => "keyword ".$field->{id}.$ind.$lab." value '$val' already used, skipping"};
+    #$self->app->log->debug("used keywords: ".$self->app->dumper($used_keywords));
+
+    if($used_keywords->{$ind.$lab.$val} == 1){
+      # push @{$self->{mapping_alerts}}, { type => 'info', msg => "keyword ".$field->{id}.$ind.$lab." value '$val' already used, skipping [$ind$lab$val]"};
+      return;
     }else{
-      $used_keywords->{$lab.$val} = 1;
+      #push @{$self->{mapping_alerts}}, { type => 'info', msg => "keyword ".$field->{id}.$ind.$lab." value '$val' [$ind$lab$val]"};
+      $used_keywords->{$ind.$lab.$val} = 1;
     }
 
+    # Gebietskörperschaftsname (GND)
     if($lab eq 'g'){
       $authority = 'gnd';
       $xmlname = 'geographic';
@@ -601,17 +607,64 @@ sub get_keyword_node {
           if($sf1->{content} =~ m/\([\w+-]+\)([\d-]+)/){
             $valueURI = $1;
           }
-	}
+	       }
       }
     }
+
+    # Sachbegriff (GND)
     if($lab eq 's'){
       $xmlname = 'topic';
+
+      foreach my $sf1 (@{$field->{subfield}}){
+        if($sf1->{label} eq '9'){
+          $authority = 'gnd';
+          if($sf1->{content} =~ m/\([\w+-]+\)([\d-]+)/){
+            $valueURI = $1;
+          }
+         }
+      } 
     }
+
+    # Name (GND)
+    my $name_node;
+    if($lab eq 'p'){    
+      foreach my $sf1 (@{$field->{subfield}}){
+        if($sf1->{label} eq '9'){
+          $authority = 'gnd';
+          if($sf1->{content} =~ m/\([\w+-]+\)([\d-]+)/){
+            $valueURI = $1;
+          }
+         }
+      }
+      $name_node = $self->_get_name_node('personal', $val, 1, $valueURI);
+    }
+
+    # z = Geografika: Geografische Unterteilung (GND)
+    # z = Zeitschlagwort (ohne GND-IDNR)
     if($lab eq 'z'){
       $xmlname = 'temporal';
+      # z ohne GND-Nr. = Zeitschlagwort
+      # z mit GND-Nr.: beschreibt das geographische Schlagwort genauer (z.B. Region = Ort/Stadt plus Umgebung, Nordwest, Fluss – s.u.
+      foreach my $sf1 (@{$field->{subfield}}){
+        if($sf1->{label} eq '9'){
+          # FIXME: how to save this?
+          #$xmlname = 'geographic';
+          #$authority = 'gnd';
+          #if($sf1->{content} =~ m/\([\w+-]+\)([\d-]+)/){
+          # $valueURI = $1;
+          #}
+          $skip = 1;
+         }
+      }
     }
+
+    # should not have 9
     if($lab eq 'f'){
       $xmlname = 'topic';
+    }
+
+    if($skip){
+      next;
     }
 
     my $kw = {
@@ -641,7 +694,11 @@ sub get_keyword_node {
       };
     }
 
-    push @$keywords, $kw;
+    if($name_node){
+      push @$keywords, $name_node;
+    }else{
+      push @$keywords, $kw;
+    }
 
   }
 
