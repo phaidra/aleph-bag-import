@@ -1106,7 +1106,7 @@ sub _get_name_node {
       if($name =~ m/\s?(\w+)\s?,\s?([\w\.]+)\s?/){
         my $lastname = $1;
         my $firstname = $2;
-	if($firstname ne '...'){
+	      if($firstname ne '...'){
           push @{$node->{children}}, {
             "xmlname" => "namePart",
             "input_type" => "input_text",
@@ -1119,7 +1119,7 @@ sub _get_name_node {
               }
             ]
           };
-	}
+	      }
         push @{$node->{children}}, {
           "xmlname" => "namePart",
           "input_type" => "input_text",
@@ -1133,7 +1133,13 @@ sub _get_name_node {
           ]
         };
       }else{
-        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "Personal name without 'lastname, firstname' format: $name"};
+        push @{$self->{mapping_alerts}}, { type => 'warning', msg => "Personal name without 'lastname, firstname' format: $name"};
+
+        push @{$node->{children}}, {
+          "xmlname" => "namePart",
+          "input_type" => "input_text",
+          "ui_value" => $name          
+        };
       }
     }else{
       push @{$node->{children}}, { "xmlname" => "namePart",  "ui_value" => $name, "input_type" => "input_text" };
