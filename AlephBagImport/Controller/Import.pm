@@ -589,13 +589,15 @@ sub get_keyword_node {
     
     #$self->app->log->debug("used keywords: ".$self->app->dumper($used_keywords));
 
-    if($used_keywords->{$ind.$lab.$val} == 1){
+    if(defined($used_keywords->{$ind.$lab.$val}) && $used_keywords->{$ind.$lab.$val} == 1){
       # push @{$self->{mapping_alerts}}, { type => 'info', msg => "keyword ".$field->{id}.$ind.$lab." value '$val' already used, skipping [$ind$lab$val]"};
       return;
     }else{
       #push @{$self->{mapping_alerts}}, { type => 'info', msg => "keyword ".$field->{id}.$ind.$lab." value '$val' [$ind$lab$val]"};
       $used_keywords->{$ind.$lab.$val} = 1;
     }
+
+    next if $lab eq '9';
 
     # Gebietskörperschaftsname (GND)
     if($lab eq 'g'){
@@ -628,6 +630,7 @@ sub get_keyword_node {
     # Name (GND)
     my $name_node;
     if($lab eq 'p'){    
+
       foreach my $sf1 (@{$field->{subfield}}){
         if($sf1->{label} eq '9'){
           $authority = 'gnd';
@@ -638,6 +641,8 @@ sub get_keyword_node {
       }
       $name_node = $self->_get_name_node('personal', $val, 1, $valueURI);
     }
+
+#$self->app->log->info("name node ".$self->app->dumper($name_node));
 
     # z = Geografika: Geografische Unterteilung (GND)
     # z = Zeitschlagwort (ohne GND-IDNR)
