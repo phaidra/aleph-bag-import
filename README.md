@@ -1,7 +1,9 @@
 ## Mapping MAB > MODS > DC
 
 ### 001
+
 > Record identifier
+
 ###### Example
 `AC08790778`
 
