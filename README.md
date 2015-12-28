@@ -40,8 +40,8 @@
 
 ### 034-
 
-> Geographical coordinates.
-> Is not mapped into MODS but into a separate datastream called GEO
+> Geographical coordinates.  
+> Is not mapped into MODS but into a separate datastream called GEO  
 > If there is nothing in 034- then check 078k
 
 > Subfields
