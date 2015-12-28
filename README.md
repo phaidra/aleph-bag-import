@@ -123,7 +123,7 @@ TBD
 200 _ p, 204 a p, 208 a p, 296 a p  
 200 b p, 204 b p, 208 b p, 296 b p  
 
-100... persons
+100... persons  
 200... corporate entities  
 
 Subfields  
