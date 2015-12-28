@@ -123,14 +123,30 @@ TBD
 200 _ p, 204 a p, 208 a p, 296 a p  
 200 b p, 204 b p, 208 b p, 296 b p  
 
-100... creators  
-200... contributors  
+100... persons
+200... corporate entities  
 
 Subfields  
 * a - not GND normalized name
-* p - GND normalized name
+* p - GND normalized name (in case of 200 fields /corporate entities/ it's not 'p' but 'k','g' or 'b')
 * 9 - GND identifier
 * b - role
+
+Role mapping
+  
+| MAB        | MODS           | Note  |
+| ------------- | ------------- | ----- |
+| [Bearb.] | edt | # Fällt im Englischen mit editor zusammen |
+| [Hrsg.] | edt | |
+| [Drucker] | prt | |
+| [Ill.] | ill | |
+| [Widmungsempfänger] | dte | # drm steht eigentlich für Technischer Zeichner, es gibt aber ansonsten nur Künstler - in beiden Fällen ist etwas anderes gemeint, aber Technischer Zeichner trifft es m.E.n. noch eher |
+| [Zeichner] | drm | |
+| [Mitarb.] | ctb | |
+| [Kartograph] | ctg | |
+| [Lithograph] | ltg | |
+| [Stecher] | egr | |
+  
 
 If the role wasn't found then 
 *  If field is 100 and indicator is 'a' or '-' then the role is 'author'
