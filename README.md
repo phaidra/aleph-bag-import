@@ -1,8 +1,8 @@
 ## Mapping MAB > MODS > DC
 
-### 001
+### Record identifier
 
-> Record identifier
+#### 001
 
 ###### Example
 `AC08790778`
@@ -17,11 +17,13 @@
 <dc:identifier>AC08790778</dc:identifier>
 ```
 
-### ~~003~~ (ignored)
+### ~~Related item identifier~~
 
-### 037ba
+#### 003 (ignored)
 
-> Language
+### Language
+
+#### 037ba
 
 ###### Example
 `ger`
@@ -38,9 +40,9 @@
 <dc:language>ger</dc:language>
 ```
 
-### 034-
+### Geographical coordinates
 
-> Geographical coordinates.  
+#### 034-
 
 Is not mapped into MODS but into a separate datastream called GEO  
 If there is nothing in 034- then check 078k
@@ -110,10 +112,11 @@ Subfields
 TBD
 ```
 
-### 100/200
+### Roles and contributors
 
-> Roles and contributors
+#### 100/200
 
+Could be:
 100 _ a, 104 a a, 108 a a … 196 a a  
 100 b a, 104 b a, 108 b a … 196 b a  
 100 _ p, 104 a p, 108 a p … 196 a p  
@@ -187,10 +190,16 @@ If the role wasn't found then
 <dc:creator>Bayer, Michael</dc:creator>
 ```
 
+### Titles
 
-### 037ba
-
-> Language
+| MAB Field        | Subtitle pair field |  MODS title type |
+| ------------- | ------------- | ----- |
+| 304 | *none* | uniform |
+| 310 | *none* | alternative |
+| 341 | 343 | translated |
+| 345 | 347 | translated |
+| 349 | 351 | translated |
+| 331 | 335 | *none* |
 
 ###### Example
 `ger`
