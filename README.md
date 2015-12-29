@@ -5,7 +5,19 @@
 #### 001
 
 ###### Example
-`AC08790778`
+```json
+{
+  "i1" : "-",
+  "subfield" : [ 
+    {
+      "content" : "AC08790778",
+      "label" : "a"
+    }
+  ],
+  "id" : "001",
+  "i2" : "1"
+}
+```
 
 ###### MODS
 ```xml
@@ -26,7 +38,19 @@
 #### 037ba
 
 ###### Example
-`ger`
+```json
+{
+  "i1" : "b",
+  "id" : "037",
+  "subfield" : [ 
+    {
+      "label" : "a",
+      "content" : "ger"
+    }
+   ],
+  "i2" : "1"
+}
+```
 
 ###### MODS
 ```xml
@@ -56,7 +80,7 @@ Subfields
 * g - S
 
 ###### Example
-```
+```json
 {
   "subfield" : [ 
     {
@@ -156,7 +180,7 @@ If the role wasn't found then
 *  If indicator is 'b', the role is 'contributor'
 
 ###### Example
-```
+```json
 {
   "id" : "100",
   "subfield" : [ 
@@ -202,16 +226,67 @@ If the role wasn't found then
 | 331 | 335 | *none* |
 
 ###### Example
-`ger`
+```json
+{
+  "i2" : "1",
+  "subfield" : [ 
+    {
+      "content" : "Karte des Herzogthums Kaernten",
+      "label" : "a"
+    }
+   ],
+  "id" : "331",
+  "i1" : "-"
+}
+```
 
 ###### MODS
 ```xml
-<mods:language>
-  <mods:languageTerm authority="iso639-2b" type="code">ger</mods:languageTerm>
-</mods:language>
+<mods:titleInfo>
+  <mods:title>Karte des Herzogthums Kaernten</mods:title>
+</mods:titleInfo>
 ```
 
 ###### DC
 ```xml
-<dc:language>ger</dc:language>
+<dc:title>Karte des Herzogthums Kaernten</dc:title>
 ```
+
+### Related item title
+
+#### 361
+
+###### Example
+```json
+{
+  "i2" : "1",
+  "subfield" : [ 
+    {
+      "content" : "Karte des Herzogthums Kaernten",
+      "label" : "a"
+    }
+   ],
+  "id" : "331",
+  "i1" : "-"
+}
+```
+
+###### MODS
+```xml
+<mods:relatedItem type="constituent">
+  <mods:titleInfo>
+    <mods:title>Geologische Karte des Burst</mods:title>
+  </mods:titleInfo>
+</mods:relatedItem>
+```
+
+###### DC
+```xml
+<dc:relation>Geologische Karte des Burst</dc:relation>
+```
+
+###### DC terms
+```xml
+<dcterms:isPartOf xsi:type="dcterms:URI">Geologische Karte des Burst</dcterms:isPartOf>
+```
+
