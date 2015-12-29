@@ -756,6 +756,22 @@ Beispiele für h-Zusatz:
 
 ## Generated (not mapped) fields
 
+For every map, following parts are generated automatically:
+```xml
+<mods:recordInfo>
+  <mods:recordContentSource>Universitätsbibliothek Wien</mods:recordContentSource>
+  <mods:recordOrigin>Maschinell erzeugt</mods:recordOrigin>
+  <mods:languageOfCataloging>
+    <mods:languageTerm authority="iso639-2b" type="code">ger</mods:languageTerm>
+  </mods:languageOfCataloging>
+  <mods:descriptionStandard>rakwb</mods:descriptionStandard>
+</mods:recordInfo>
+
+<mods:note lang="ger" type="statement of responsibility">Bestand der Kartensammlung der Fachbereichsbibliothek Geographie und Regionalforschung, Universität Wien</mods:note>
+
+<mods:accessCondition type="use and reproduction">http://creativecommons.org/publicdomain/mark/1.0/</mods:accessCondition>
+```
+
 ## Open questions
 * 359 - should it not be mapped ??? Example for AC08790778:
 ```json
