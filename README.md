@@ -505,4 +505,3 @@ With any indcator (indicator is the value of 'i1').
 <dc:description>mehrfarb.</dc:description>
 ```
 
-
