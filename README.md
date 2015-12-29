@@ -6,7 +6,8 @@
 * [Geographical coordinates](#geographical-coordinates)
 * [Roles and contributors](#roles-and-contributors)
 * [Titles](#titles)
-* [Related item title](#related-item-title)
+* [Constituent title](#constituent-title)
+* [Series title](#series-title)
 * [Edition statement](#edition statement)
 
 
@@ -264,7 +265,7 @@ With any indcator (indicator is the value of 'i1').
 <dc:title>Karte des Herzogthums Kaernten</dc:title>
 ```
 
-### Related item title
+### Constituent title
 
 #### 361
 
@@ -303,6 +304,37 @@ With any indcator (indicator is the value of 'i1').
 ```xml
 <dcterms:isPartOf xsi:type="dcterms:URI">Geologische Karte des Burst</dcterms:isPartOf>
 ```
+
+### Series title
+
+#### 451
+
+With any indcator (indicator is the value of 'i1').
+
+###### MAB (JSON)
+```json
+
+```
+
+###### MODS
+```xml
+<mods:relatedItem type="series">
+  <mods:titleInfo>
+    <mods:title>Artaria's General-Karten der österreichischen und ungarischen Länder; Nr. 5 Trunk's Schulhandkarte</mods:title>
+  </mods:titleInfo>
+</mods:relatedItem>
+```
+
+###### DC
+```xml
+<dc:relation>Artaria's General-Karten der österreichischen und ungarischen Länder; Nr. 5 Trunk's Schulhandkarte</dc:relation>
+```
+
+###### DC terms
+```xml
+<dcterms:isPartOf xsi:type="dcterms:URI">Artaria's General-Karten der österreichischen und ungarischen Länder; Nr. 5 Trunk's Schulhandkarte</dcterms:isPartOf>
+```
+
 
 ### Edition statement
 
@@ -550,6 +582,36 @@ Indicator '-' ???
 <dc:description>86 x 64 cm</dc:description>
 ```
 
+### Footnotes
+
+#### 501, 507, 511, 512, 517, 525
+
+Indicator '-' ???
+
+###### MAB (JSON)
+```json
+{
+    "i1" : "-",
+    "subfield" : [ 
+        {
+            "content" : "Mit Schraffen. - Mit statist. Übersicht. - Maßstab in graph. Form (Wr. Klafter). - Nebenkt. Stadtplan Klagenfurt",
+            "label" : "a"
+        }
+    ],
+    "id" : "501",
+    "i2" : "1"
+}
+```
+
+###### MODS
+```xml
+<mods:note>Mit Schraffen. - Mit statist. Übersicht. - Maßstab in graph. Form (Wr. Klafter). - Nebenkt. Stadtplan Klagenfurt</mods:note>
+```
+
+###### DC ???
+```xml
+<dc:description>Mit Schraffen. - Mit statist. Übersicht. - Maßstab in graph. Form (Wr. Klafter). - Nebenkt. Stadtplan Klagenfurt</dc:description>
+```
 
 ## Open questions
 * 359 - should it not be mapped ??? Example for AC08790778:
