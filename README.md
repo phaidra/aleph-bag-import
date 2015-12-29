@@ -478,6 +478,8 @@ With any indcator (indicator is the value of 'i1').
 
 #### 434
 
+Indicator '-' ???
+
 ###### MAB (JSON)
 ```json
 {
@@ -496,12 +498,61 @@ With any indcator (indicator is the value of 'i1').
 ###### MODS
 ```xml
 <mods:physicalDescription>
-  <form type="productionmethod">mehrfarb.</mods:form>
+  <mods:form type="productionmethod">mehrfarb.</mods:form>
 </mods:physicalDescription>
 ```
 
-###### DC
+###### DC ???
 ```xml
 <dc:description>mehrfarb.</dc:description>
 ```
 
+### Format
+
+#### 435
+
+Indicator '-' ???
+
+###### MAB (JSON)
+```json
+{
+    "i1" : "-",
+    "i2" : "1",
+    "id" : "435",
+    "subfield" : [ 
+        {
+            "content" : "86 x 64 cm",
+            "label" : "a"
+        }
+    ]
+}
+```
+
+###### MODS
+```xml
+<mods:physicalDescription>
+  <mods:extent>86 x 64 cm</mods:extent>
+</mods:physicalDescription>
+```
+
+###### DC ???
+```xml
+<dc:description>86 x 64 cm</dc:description>
+```
+
+
+## Open questions
+* 359 - should it not be mapped ??? Example for AC08790778:
+```json
+{
+    "i2" : "1",
+    "id" : "359",
+    "subfield" : [ 
+        {
+            "content" : "zsgest. und gezeichnet von Michael Bayer",
+            "label" : "a"
+        }
+    ],
+    "i1" : "-"
+}
+```
