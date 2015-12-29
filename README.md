@@ -752,6 +752,9 @@ Beispiele für h-Zusatz:
 ```xml
 <dc:subject>Kärnten, Karte</dc:subject>
 ```
+
+## Generated (not mapped) fields
+
 ## Open questions
 * 359 - should it not be mapped ??? Example for AC08790778:
 ```json
