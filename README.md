@@ -4,7 +4,7 @@
 
 #### 001
 
-###### Example
+###### MAB (JSON)
 ```json
 {
   "i1" : "-",
@@ -37,7 +37,7 @@
 
 #### 037ba
 
-###### Example
+###### MAB (JSON)
 ```json
 {
   "i1" : "b",
@@ -79,7 +79,7 @@ Subfields
 * f - N
 * g - S
 
-###### Example
+###### MAB (JSON)
 ```json
 {
   "subfield" : [ 
@@ -179,7 +179,7 @@ If the role wasn't found then
 *  If field is 100 and indicator is 'a' or '-' then the role is 'author'
 *  If indicator is 'b', the role is 'contributor'
 
-###### Example
+###### MAB (JSON)
 ```json
 {
   "id" : "100",
@@ -225,7 +225,7 @@ If the role wasn't found then
 | 349 | 351 | translated |
 | 331 | 335 | *none* |
 
-###### Example
+###### MAB (JSON)
 ```json
 {
   "i2" : "1",
@@ -256,7 +256,7 @@ If the role wasn't found then
 
 #### 361
 
-###### Example
+###### MAB (JSON)
 ```json
 {
   "i2" : "1",
@@ -294,7 +294,7 @@ If the role wasn't found then
 
 #### 403
 
-###### Example
+###### MAB (JSON)
 ```json
 {
     "id" : "403",
@@ -333,7 +333,7 @@ If the role wasn't found then
 
 The difference between place of publication and place of printing will be ignored.
 
-###### Example
+###### MAB (JSON)
 ```json
 {
     "subfield" : [ 
@@ -370,7 +370,7 @@ The difference between place of publication and place of printing will be ignore
 
 The difference between publisher and printer will be ignored.
 
-###### Example
+###### MAB (JSON)
 ```json
 {
     "i2" : "1",
