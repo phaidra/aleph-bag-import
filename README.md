@@ -9,6 +9,16 @@
 * [Constituent title](#constituent-title)
 * [Series title](#series-title)
 * [Edition statement](#edition statement)
+* [Place of publication](#place-of-publication)
+* [Publisher](#publisher)
+* [Date of publication](#date-of-publication)
+* [Extent](#extent)
+* [Production method](#production-method)
+* [Format](#format)
+* [Footnotes](#footnotes)
+* [Classification](#classefication)
+* [Keyword chains](#keyword-chains)
+* [Open questions](#open-questions)
 
 
 ### Record identifier
@@ -614,6 +624,134 @@ Indicator '-' ???
 <dc:description>Mit Schraffen. - Mit statist. Übersicht. - Maßstab in graph. Form (Wr. Klafter). - Nebenkt. Stadtplan Klagenfurt</dc:description>
 ```
 
+### Classification
+
+#### 700fa - id 
+#### 700fb - label
+
+We only map the identifier (the label for the identifier is already available in Phaidra/Vocabulary server).
+
+###### MAB (JSON)
+```json
+{
+    "i1" : "f",
+    "i2" : "1",
+    "subfield" : [ 
+        {
+            "content" : "74.20",
+            "label" : "a"
+        }, 
+        {
+            "label" : "b",
+            "content" : "Deutschland, Österreich, Schweiz <Geographie>"
+        }
+    ],
+    "id" : "700"
+}
+```
+
+###### MODS
+```xml
+<mods:classification authority="bkl">74.20</mods:classification>
+```
+
+###### DC ???
+```xml
+<dc:subject>Deutschland</dc:subject>
+```
+
+### Keyword chains
+
+#### 902...947
+
+Entries with the same field number (eg 902) represent one keyword chain. The subfields (eg 'g', 'f',...) define the various types of keywords on the chain.
+
+Sometimes a subfield (eg 'z') can mean different things depending on context.
+
+Guide to subfields:
+```
+902     KETTENGLIED DER 1. SCHLAGWORTKETTE
+
+  Unterfelder:
+
+    p     = Name (GND)
+    k     = Körperschaftsname (GND)
+    e     = Kongressname (GND)
+    g     = Gebietskörperschaftsname (GND)
+    s     = Sachbegriff (GND)
+    b     = Untergeordnete Körperschaft, untergeordnete Einheit (GND)
+    n     = Zählung (GND)
+    c     = Personen: Beiname, Gattungsname, Titulatur, Territorium (GND)
+    c     = Kongresse: Ort des Kongresses (GND)
+    h     = Identifizierender Zusatz (GND)
+    d     = Personen: Lebensjahre (GND)
+    d     = Kongresse: Datum des Kongresses (GND)
+    x     = Allgemeine Unterteilung (GND)
+    z     = Geografika: Geografische Unterteilung (GND)
+    z     = Zeitschlagwort (ohne GND-IDNR)
+    9     = GND-Identnummer
+    t     = Titel (GND)
+    f     = Titel: Erscheinungsjahr eines Werkes (GND)
+    f     = Formschlagwort (ohne GND-IDNR)
+    m     = Besetzung im Musikbereich (GND)
+    n     = Titel: Zählung (GND)
+    o     = Angabe des Musikarrangements (GND)
+    u     = Teil eines Werkes (GND)
+    r     = Tonart (GND)
+    s     = Version (GND)
+
+Beispiel für z Geografische Unterteilung:
+
+    g Minnesota z Nordwest
+    g Gastein z Region (= Umgebung von Gastein)
+
+Beispiele für h-Zusatz:
+
+    g Lippe h Fluss
+```
+
+###### MAB (JSON)
+```json
+{
+    "i2" : "1",
+    "subfield" : [ 
+        {
+            "content" : "Kärnten",
+            "label" : "g"
+        }, 
+        {
+            "content" : "(DE-588)4029175-3",
+            "label" : "9"
+        }
+    ],
+    "id" : "902",
+    "i1" : "-"
+}, 
+{
+    "i1" : "-",
+    "i2" : "1",
+    "id" : "902",
+    "subfield" : [ 
+        {
+            "content" : "Karte",
+            "label" : "f"
+        }
+    ]
+},
+```
+
+###### MODS
+```xml
+<mods:subject>
+  <mods:geographic authority="gnd" authorityURI="http://d-nb.info/gnd/" valueURI="http://d-nb.info/gnd/4029175-3">Kärnten</mods:geographic>
+  <mods:topic>Karte</mods:topic>
+</mods:subject>
+```
+
+###### DC
+```xml
+<dc:subject>Kärnten, Karte</dc:subject>
+```
 ## Open questions
 * 359 - should it not be mapped ??? Example for AC08790778:
 ```json
