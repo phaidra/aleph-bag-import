@@ -290,3 +290,39 @@ If the role wasn't found then
 <dcterms:isPartOf xsi:type="dcterms:URI">Geologische Karte des Burst</dcterms:isPartOf>
 ```
 
+### Edition statement
+
+#### 403
+
+###### Example
+```json
+{
+    "id" : "403",
+    "subfield" : [ 
+        {
+            "content" : "3., erg. Aufl.",
+            "label" : "a"
+        }
+    ],
+    "i2" : "1",
+    "i1" : "-"
+}
+```
+
+###### MODS
+```xml
+<mods:originInfo>
+  <mods:edition>3., erg. Aufl.</mods:edition>
+</mods:originInfo>
+```
+
+###### DC
+```xml
+<dc:relation>3., erg. Aufl.</dc:relation>
+```
+
+###### DC terms
+```xml
+<dcterms:isVersionOf xsi:type="dcterms:URI">Geologische Karte des Burst</dcterms:isVersionOf>
+```
+
