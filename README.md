@@ -323,6 +323,78 @@ If the role wasn't found then
 
 ###### DC terms
 ```xml
-<dcterms:isVersionOf xsi:type="dcterms:URI">Geologische Karte des Burst</dcterms:isVersionOf>
+<dcterms:isVersionOf xsi:type="dcterms:URI">3., erg. Aufl.</dcterms:isVersionOf>
 ```
+
+### Place of publication
+
+#### 410 - Place of publication
+#### 410a - Place of printing
+
+The difference between place of publication and place of printing will be ignored.
+
+###### Example
+```json
+{
+    "subfield" : [ 
+        {
+            "label" : "a",
+            "content" : "Klagenfurt"
+        }
+    ],
+    "id" : "410",
+    "i2" : "1",
+    "i1" : "-"
+}
+```
+
+###### MODS
+```xml
+<mods:originInfo>
+  <mods:place>
+    <mods:placeTerm type="text">Klagenfurt</mods:placeTerm>
+  </mods:place>
+</mods:originInfo>
+```
+
+###### DC
+```xml
+<dc:publisher>Klagenfurt</dc:publisher>
+```
+
+
+### Publisher
+
+#### 412 - Publisher
+#### 412a - Printer
+
+The difference between publisher and printer will be ignored.
+
+###### Example
+```json
+{
+    "i2" : "1",
+    "id" : "412",
+    "subfield" : [ 
+        {
+            "content" : "Kleinmayr",
+            "label" : "a"
+        }
+    ],
+    "i1" : "-"
+}
+```
+
+###### MODS
+```xml
+<mods:originInfo>
+  <mods:publisher>Kleinmayr</mods:publisher>
+</mods:originInfo>
+```
+
+###### DC
+```xml
+<dc:publisher>Kleinmayr</dc:publisher>
+```
+
 
