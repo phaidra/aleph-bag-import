@@ -515,6 +515,7 @@ With any indcator (indicator is the value of 'i1').
 ###### DC
 ```xml
 <dc:description>1 Kt.</dc:description>
+```
 
 ### Production method
 
