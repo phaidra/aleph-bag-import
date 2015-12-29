@@ -1,6 +1,13 @@
 ## Mapping MAB > MODS > DC
 
-* [Record identifier](#Record identifier)
+* [Record identifier](#record-identifier)
+* [Related item identifier](#related-item-identifier)
+* [Language](#language)
+* [Geographical coordinates](#geographical-coordinates)
+* [Roles and contributors](#roles-and-contributors)
+* [Titles](#titles)
+* [Related item title](#related-item-title)
+* [Edition statement](#edition statement)
 
 
 ### Record identifier
