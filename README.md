@@ -216,6 +216,8 @@ If the role wasn't found then
 
 ### Titles
 
+With any indcator (indicator is the value of 'i1').
+
 | MAB Field        | Subtitle pair field |  MODS title type |
 | ------------- | ------------- | ----- |
 | 304 | *none* | uniform |
@@ -255,6 +257,8 @@ If the role wasn't found then
 ### Related item title
 
 #### 361
+
+With any indcator (indicator is the value of 'i1').
 
 ###### MAB (JSON)
 ```json
@@ -362,7 +366,6 @@ The difference between place of publication and place of printing will be ignore
 <dc:publisher>Klagenfurt</dc:publisher>
 ```
 
-
 ### Publisher
 
 #### 412 - Publisher
@@ -395,6 +398,111 @@ The difference between publisher and printer will be ignored.
 ###### DC
 ```xml
 <dc:publisher>Kleinmayr</dc:publisher>
+```
+
+### Date of publication
+
+#### 425a (if not found, then 425- is used)
+
+###### MAB (JSON)
+```json
+{
+    "subfield" : [ 
+        {
+            "content" : "1880",
+            "label" : "a"
+        }
+    ],
+    "id" : "425",
+    "i2" : "1",
+    "i1" : "a"
+}, 
+{
+    "id" : "425",
+    "subfield" : [ 
+        {
+            "label" : "a",
+            "content" : "s.a. [ca. 1880]"
+        }
+    ],
+    "i2" : "1",
+    "i1" : "-"
+}
+```
+
+###### MODS
+```xml
+<mods:originInfo>
+  <mods:dateIssued encoding="w3cdtf" keyDate="yes">1880</mods:dateIssued>
+</mods:originInfo>
+```
+
+###### DC
+```xml
+<dc:date>1880</dc:date>
+```
+
+### Extent
+
+#### 433
+
+With any indcator (indicator is the value of 'i1').
+
+###### MAB (JSON)
+```json
+{
+    "i2" : "1",
+    "subfield" : [ 
+        {
+            "label" : "a",
+            "content" : "1 Kt."
+        }
+    ],
+    "id" : "433",
+    "i1" : "c"
+}
+```
+
+###### MODS
+```xml
+<mods:physicalDescription>
+  <mods:extent>1 Kt.</mods:extent>
+</mods:physicalDescription>
+```
+
+###### DC
+```xml
+<dc:description>1 Kt.</dc:description>
+
+### Production method
+
+#### 434
+
+###### MAB (JSON)
+```json
+{
+    "i2" : "1",
+    "id" : "434",
+    "subfield" : [ 
+        {
+            "label" : "a",
+            "content" : "mehrfarb."
+        }
+    ],
+    "i1" : "-"
+}
+```
+
+###### MODS
+```xml
+<mods:physicalDescription>
+  <form type="productionmethod">mehrfarb.</mods:form>
+</mods:physicalDescription>
+```
+
+###### DC
+```xml
+<dc:description>mehrfarb.</dc:description>
 ```
 
 
