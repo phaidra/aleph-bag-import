@@ -249,6 +249,8 @@ With any indcator (indicator is the value of 'i1').
 | 349 | 351 | translated |
 | 331 | 335 | *none* |
 
+Following special characters are removed: '<<','>>'
+
 ###### MAB (JSON)
 ```json
 {
