@@ -201,6 +201,11 @@ If the role wasn't found then
 *  If field is 100 and indicator is 'a' or '-' then the role is 'author'
 *  If indicator is 'b', the role is 'contributor'
 
+The names are parsed in a following way: (firstname),trim(lastname)
+Following special characters are removed from the names: '<<','>>'
+
+Eg: `Kurzböck, Joseph <<von>>` would be firstname: `Joseph von` lastname: `Kurzböck`
+
 ###### MAB (JSON)
 ```json
 {
