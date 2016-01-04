@@ -672,6 +672,11 @@ sub get_keyword_node {
       next;
     }
 
+    unless(defined($xmlname)){      
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "mapping missing for field ".$field->{'id'}." ind[$ind] lab[$lab] val[$val]"};
+      next;
+    }
+
     my $kw = {
       "xmlname" => $xmlname,
       "input_type" => "input_text",
