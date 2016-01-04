@@ -203,6 +203,7 @@ If the role wasn't found then
 
 The names are parsed in a following way: (firstname),trim(lastname)
 Following special characters are removed from the names: '<<','>>'
+Firstname is ignored if it equals to `...`
 
 Eg: `Kurzböck, Joseph <<von>>` would be firstname: `Joseph von` lastname: `Kurzböck`
 
