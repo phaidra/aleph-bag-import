@@ -213,7 +213,7 @@ Eg: `Mechel, Christian <<von>>` would be firstname: `Christian von` lastname: `M
 ```json
 {
   "id" : "100",
-  "i1" : "b"
+  "i1" : "b",
   "i2" : "1",
   "subfield" : [ 
     {
