@@ -751,9 +751,9 @@ In MODS, each keyword chain will be represented as a separate <subject> node wit
 In DC, each chain will be represented as one <subject> node, with categories separated by semicolon: `Hüningen, Region; Belagerung; Geschichte; Altkarte`
 
 Sometimes a subfield (eg 'z') can mean different things depending on context (that's why it's twice in the guide). One important example:  
-* z subfield:  
-** If the category contains a GND identifier (it's saved in '9' subfield) the the subfield 'z' particularizes the 'g' keyword. Eg. since Hüningen is both a city and a region, 'g' will contain 'Hüningen' and 'z' will contain 'Region' to differentiate it from the city.
-** If the category DOES NOT contain GND identifier, then 'z' is a temporal keyword (eg 'History')
+* z subfield
+  * If the category contains a GND identifier (it's saved in '9' subfield) the the subfield 'z' particularizes the 'g' keyword. Eg. since Hüningen is both a city and a region, 'g' will contain 'Hüningen' and 'z' will contain 'Region' to differentiate it from the city.  
+  * If the category DOES NOT contain GND identifier, then 'z' is a temporal keyword (eg 'History')
 
 The MAB/Aleph guide to subfields:
 ```
@@ -801,12 +801,12 @@ Here is the subfield <-> child node mapping:
 
 | Subfield        | Child node |
 | ------------- | ------------- |
-| k | <name type="corporate"><namePart> |
-| p | <name type="personal"><namePart> |
-| g | <geographic> |
-| f | <genre> |
-| s | <topic> |
-| z | <temporal>, if the category does NOT contain GND identifier |
+| k | `<name type="corporate"><namePart>` |  
+| p | `<name type="personal"><namePart>` |  
+| g | `<geographic>` |  
+| f | `<genre>` |  
+| s | `<topic>` |  
+| z | `<temporal>` if the category does NOT contain GND identifier |  
 
 
 ###### MAB (JSON)
