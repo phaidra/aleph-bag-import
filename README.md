@@ -19,7 +19,6 @@
 * [Classification](#classefication)
 * [Keyword chains](#keyword-chains)
 * [Generated (not mapped) fields](#generated-not-mapped-fields)
-* [Open questions](#open-questions)
 
 
 ### Record identifier
@@ -550,7 +549,7 @@ With any indcator (indicator is the value of 'i1').
 
 #### 434
 
-Indicator '-' ???
+Indicator always '-' and subfield 'a'.
 
 ###### MAB (JSON)
 ```json
@@ -574,7 +573,7 @@ Indicator '-' ???
 </mods:physicalDescription>
 ```
 
-###### DC ???
+###### DC
 ```xml
 <dc:description>mehrfarb.</dc:description>
 ```
@@ -583,7 +582,7 @@ Indicator '-' ???
 
 #### 435
 
-Indicator '-' ???
+Indicator always '-' and subfield 'a'.
 
 ###### MAB (JSON)
 ```json
@@ -607,7 +606,7 @@ Indicator '-' ???
 </mods:physicalDescription>
 ```
 
-###### DC ???
+###### DC
 ```xml
 <dc:description>86 x 64 cm</dc:description>
 ```
@@ -616,7 +615,15 @@ Indicator '-' ???
 
 #### 501, 507, 511, 512, 517, 525
 
-Indicator '-' ???
+| Field        | Indicator | Subfield |  
+| ------------- | ------------- | ------------- |  
+| 501 | _ | a |  
+| 507 | _ | a, p |  
+| 511 | _ | a |  
+| 512 | _, a | [none] |  
+| 517 | _, a, b, c | p |  
+| 525 | _ | p + a |  
+
 
 ###### MAB (JSON)
 ```json
@@ -638,7 +645,7 @@ Indicator '-' ???
 <mods:note>Mit Schraffen. - Mit statist. Übersicht. - Maßstab in graph. Form (Wr. Klafter). - Nebenkt. Stadtplan Klagenfurt</mods:note>
 ```
 
-###### DC ???
+###### DC
 ```xml
 <dc:description>Mit Schraffen. - Mit statist. Übersicht. - Maßstab in graph. Form (Wr. Klafter). - Nebenkt. Stadtplan Klagenfurt</dc:description>
 ```
@@ -674,7 +681,7 @@ We only map the identifier (the label for the identifier is already available in
 <mods:classification authority="bkl">74.20</mods:classification>
 ```
 
-###### DC ???
+###### DC
 ```xml
 <dc:subject>Deutschland</dc:subject>
 ```
@@ -870,18 +877,3 @@ For every map, following parts are generated automatically:
 <mods:accessCondition type="use and reproduction">http://creativecommons.org/publicdomain/mark/1.0/</mods:accessCondition>
 ```
 
-## Open questions
-* 359 - should it not be mapped ??? Example for AC08790778:
-```json
-{
-    "i2" : "1",
-    "id" : "359",
-    "subfield" : [ 
-        {
-            "content" : "zsgest. und gezeichnet von Michael Bayer",
-            "label" : "a"
-        }
-    ],
-    "i1" : "-"
-}
-```
