@@ -641,7 +641,7 @@ Indicator always '-' and subfield 'a'.
 ```
 
 ###### MAB (JSON) Example for 525 p+a
-```
+```json
 {
   "id" : "525",
   "i1" : "-",
