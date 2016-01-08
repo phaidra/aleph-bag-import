@@ -640,6 +640,25 @@ Indicator always '-' and subfield 'a'.
 }
 ```
 
+###### MAB (JSON) Example for 525 p+a
+```
+{
+  "id" : "525",
+  "i1" : "-",
+  "i2" : "1",
+  "subfield" : [ 
+    {
+      "label" : "p",
+      "content" : "Aus"
+    }, 
+    {
+      "content" : "Stielers Hand-Atlas",
+      "label" : "a"
+    }
+  ]
+}
+```
+
 ###### MODS
 ```xml
 <mods:note>Mit Schraffen. - Mit statist. Übersicht. - Maßstab in graph. Form (Wr. Klafter). - Nebenkt. Stadtplan Klagenfurt</mods:note>
