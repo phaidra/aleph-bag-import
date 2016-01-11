@@ -781,6 +781,8 @@ Sometimes a subfield (eg 'z') can mean different things depending on context (th
   * If the category contains a GND identifier (it's saved in '9' subfield) the the subfield 'z' particularizes the 'g' keyword. Eg. since Hüningen is both a city and a region, 'g' will contain 'Hüningen' and 'z' will contain 'Region' to differentiate it from the city.  
   * If the category DOES NOT contain GND identifier, then 'z' is a temporal keyword (eg 'History')
 
+The 'h' subfield should also be added after a comma (similar to 'z' as discussed). It cannot stand alone, so it's only necessary to check for it if there is another subfield in the chain.
+
 The MAB/Aleph guide to subfields:
 ```
 902     KETTENGLIED DER 1. SCHLAGWORTKETTE
