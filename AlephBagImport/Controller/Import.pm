@@ -814,12 +814,11 @@ sub get_bkl_nodes {
 
     foreach my $sf (@{$field->{subfield}}){
 
-      if($sf->{label} eq 'a'){
-        my $val = $sf->{content};
+      if($sf->{label} eq 'b'){
         push @$bkls, {
           "xmlname" => "classification",
           "input_type" => "input_text",
-          "ui_value" => $val,
+          "ui_value" => $sf->{content},
           "attributes" => [
             {
               "xmlname" => "authority",
@@ -827,8 +826,10 @@ sub get_bkl_nodes {
               "ui_value" => "bkl"
             }
           ]
-        };
+        };       
+      }
 
+      if($sf->{label} eq 'a'){
         push @$bkls, {
           "xmlname" => "classification",
           "input_type" => "input_text",
@@ -841,7 +842,7 @@ sub get_bkl_nodes {
             {
               "xmlname" => "valueURI",
               "input_type" => "select",
-              "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_10/".$bklmodel->get_tid($self, $val)
+              "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_10/".$bklmodel->get_tid($self, $sf->{content})
             }
           ]
         };
