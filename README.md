@@ -620,7 +620,7 @@ Indicator always '-' and subfield 'a'.
 | 501 | _ | a |  
 | 507 | _ | a, p |  
 | 511 | _ | a |  
-| 512 | _, a | [none] |  
+| 512 | _, a | a |  
 | 517 | _, a, b, c | p |  
 | 525 | _ | p + a |  
 
