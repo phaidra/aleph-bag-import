@@ -232,7 +232,8 @@ sub mab2mods {
   my $ac = shift;
   my @mods;
   my $geo;  
-  my %used_keywords;
+  my $keyword_chains;
+
   #my $fixfields = $mab->{record}->{0}->{metadata}->{0}->{oai_marc}->{0}->{fixfield};
   my $fields = $mab->{record}[0]->{metadata}[0]->{oai_marc}[0]->{varfield};
 
@@ -256,10 +257,14 @@ sub mab2mods {
 
   my $bklmodel = AlephBagImport::Model::Bkl->new;
 
-  my $subject_node = $self->get_subject_node();
-
   my $origin_info_node = {
     "xmlname" => "originInfo",
+    "input_type" => "node",
+    "children" => []
+  };
+
+  my $physical_description_node = {
+    "xmlname" => "physicalDescription",
     "input_type" => "node",
     "children" => []
   };
@@ -309,8 +314,8 @@ sub mab2mods {
       }
     }
 
-    # 003
-    # FIXME: check
+    # 003 - is ignored
+=cut    
     if($fieldid eq '003'){
       if($field->{'i1'} ne '-'){
         push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'003-' not found"};
@@ -328,6 +333,7 @@ sub mab2mods {
         }
       }
     }
+=cut
 
     # 037 b a
     if($fieldid eq '037'){
@@ -354,7 +360,9 @@ sub mab2mods {
         $geo = $geores->{geo};
         # TODO: add projection if possible!
         my $cart_node = $self->get_cartographics_node($geores->{scale});
+        my $subject_node = $self->get_subject_node();
         push @{$subject_node->{children}}, $cart_node;
+        push @mods, $subject_node;
       }else{
         push @{$self->{mapping_alerts}}, { type => 'info', msg => "'034 -' not found"};
       }
@@ -368,8 +376,10 @@ sub mab2mods {
           my $geores = $self->get_coordinates($field);
           $geo = $geores->{geo};
           # TODO: add projection if possible!
-          my $cart_node = $self->get_cartographics_node($geores->{scale});
+          my $cart_node = $self->get_cartographics_node($geores->{scale});          
+          my $subject_node = $self->get_subject_node();
           push @{$subject_node->{children}}, $cart_node;
+          push @mods, $subject_node;
         }else{
           push @{$self->{mapping_alerts}}, { type => 'danger', msg => "'078 k' not found"};
         }
@@ -406,7 +416,7 @@ sub mab2mods {
       my $subtitle_field;
       for my $f (@$fields){ 
         if($f->{id} eq '335'){
-  	$subtitle_field = $f; last;
+  	      $subtitle_field = $f; last;
         }
       }
 
@@ -491,23 +501,28 @@ sub mab2mods {
     }
 
     # extent
-    if($fieldid eq '433'){
+    if(($fieldid eq '433') || ($fieldid eq '435')){
       my $extent_node = $self->get_extent_node($field);
-      push @mods, $extent_node;
+      push @{$physical_description_node->{children}}, $extent_node;
     }
 
-    # notes 501, 512, 507, 511, 517, 525
-    foreach my $code (['501', '512', '507', '511', '517', '525']){
+    # production method
+    if($fieldid eq '434'){
+      my $form_node = $self->get_form_node($field);
+      push @{$physical_description_node->{children}}, $form_node;
+    }
+
+    # notes 501, 512, 507, 511, 517, 525    
+    foreach my $code (('501', '512', '507', '511', '517', '525')){
       if($fieldid eq $code){
-        my $note_node = $self->get_note_node($field);
+        my $note_node = $self->get_note_node($field, $fieldidint);
         push @mods, $note_node;
       }
     }
 
     # keywords 902, 907, 912 … 947g (..s,z,f)    
     if($fieldidint >= 902 && $fieldidint <= 947 && (($fieldidint+3) % 5 == 0 )){
-      my $keyword_nodes = $self->get_keyword_node($field, \%used_keywords);      
-      push @{$subject_node->{children}}, @$keyword_nodes if defined($keyword_nodes);
+      push @{$keyword_chains->{fieldidint}}, $self->get_keyword_nodes($field);      
     }
 
     # bkl classification
@@ -519,50 +534,32 @@ sub mab2mods {
     }
 
   }
+  
+  for my $field (keys %{$keyword_chains}){
+    
+    my $subject_node = $self->get_subject_node();
+
+    for my $kws (@{$keyword_chains->{$field}}){
+      for my $k (@{$kws}){
+        push @{$subject_node->{children}}, $k;
+      }
+    }
+
+    push @mods, $subject_node;
+  }
 
   if(scalar @{$origin_info_node->{children}} > 0){
     push @mods, $origin_info_node;
   }
 
-  push @mods, $subject_node;
+  if(scalar @{$physical_description_node->{children}} > 0){
+    push @mods, $physical_description_node;
+  }
 
-  push @mods, $self->get_recordInfo_node();
-
-  # fixed description for all maps
-  my $note_node = {
-    "xmlname" => "note",
-    "input_type" => "input_text",
-    "ui_value" => "Bestand der Kartensammlung der Fachbereichsbibliothek Geographie und Regionalforschung, Universität Wien",
-    "attributes" => [
-      {
-        "xmlname" => "type",
-        "input_type" => "select",
-        "ui_value" => "statement of responsibility"
-      },
-      {
-        "xmlname" => "lang",
-        "input_type" => "input_text",
-        "ui_value" => "ger"
-      }
-    ]
-  };
-  push @mods, $note_node;
-
-  # fixed license for all maps
-  my $license_node = {
-    "xmlname" => "accessCondition",
-    "input_type" => "input_text",
-    "ui_value" => "http://creativecommons.org/publicdomain/mark/1.0/",
-    "attributes" => [
-      {
-        "xmlname" => "type",
-        "input_type" => "select",
-        "ui_value" => "use and reproduction"
-      }
-    ]
-  };
-  push @mods, $license_node;
-
+  # static data added to every map
+  push @mods, $self->get_fixed_recordInfo_node();  
+  push @mods, $self->get_fixed_note_node();
+  push @mods, $self->get_fixed_license_node();
 
   if(scalar @{$self->{mapping_alerts}} > 0){
     $self->app->log->error($self->app->dumper($self->{mapping_alerts}));
@@ -573,103 +570,100 @@ sub mab2mods {
   return \@mods, $geo;
 }
 
-sub get_keyword_node {
-  my ($self, $field, $used_keywords) = @_;
+sub get_subject_node {
+  my ($self) = @_;
+
+  return {
+    "xmlname" => "subject",
+    "input_type" => "node",
+    "children" => []
+  };
+}
+
+sub get_keyword_nodes {
+  my ($self, $field) = @_;
 
   my $keywords;
   foreach my $sf (@{$field->{subfield}}){
 
     my $xmlname;
-    my $authority;
-    my $valueURI;
+    my $gnd_id;
+    my $name_node;
+    my $z_value;
     my $val = $sf->{content};
     my $lab = $sf->{label};
-    my $ind = $field->{i1};
-    my $skip = 0;
-    
-    #$self->app->log->debug("used keywords: ".$self->app->dumper($used_keywords));
+    my $ind = $field->{i1};    
 
-    if(defined($used_keywords->{$ind.$lab.$val}) && $used_keywords->{$ind.$lab.$val} == 1){
-      # push @{$self->{mapping_alerts}}, { type => 'info', msg => "keyword ".$field->{id}.$ind.$lab." value '$val' already used, skipping [$ind$lab$val]"};
-      return;
-    }else{
-      #push @{$self->{mapping_alerts}}, { type => 'info', msg => "keyword ".$field->{id}.$ind.$lab." value '$val' [$ind$lab$val]"};
-      $used_keywords->{$ind.$lab.$val} = 1;
+    # '9' and 'h' contain only additional information to another keyword, inspect only in a subloop
+    next if $lab eq '9';
+    next if $lab eq 'h';
+    my $non_z_subfield_found = 0;
+    foreach my $sf1 (@{$field->{subfield}}){
+
+      if($sf1->{label} eq 'h'){
+        $val = "$val, ".$sf1->{content};        
+      }
+
+      if($sf1->{label} eq '9'){
+        if($sf1->{content} =~ m/\([\w+-]+\)([\d-]+)/){
+          $gnd_id = $1;
+        }
+      }    
+
+      if(($sf1->{label} ne '9') && ($sf1->{label} ne 'h') && ($sf1->{label} ne 'z')){
+        $non_z_subfield_found = 1;
+      }
+
+      if($sf1->{label} eq 'z'){
+        $z_value = $sf1->{content};        
+      }
     }
 
-    next if $lab eq '9';
+    # in this case 'z' is just additional information
+    # add it to value with a comma
+    if($lab ne 'z' && defined($gnd_id) && defined($z_value)){
+      $val = "$val, ".$z_value
+    }
+
+    if($lab eq 'z'){
+      # in this case 'z' is just additional information
+      # it will be added later, skip
+      if($non_z_subfield_found && defined($gnd_id)){        
+        next;
+      }else{
+        # in the other case it's a standalone 'temporal' keyword
+        $xmlname = 'temporal';
+      }
+    }  
+
+    # Personal name (GND)    
+    if($lab eq 'p'){   
+      $name_node = $self->_get_name_node('personal', $val, 1, $gnd_id);
+    }
+
+    # Corporate name (GND)
+    if($lab eq 'k'){    
+      $name_node = $self->_get_name_node('corporate', $val, 1, $gnd_id);
+    }
 
     # Gebietskörperschaftsname (GND)
     if($lab eq 'g'){
-      $authority = 'gnd';
       $xmlname = 'geographic';
-
-      foreach my $sf1 (@{$field->{subfield}}){
-        if($sf1->{label} eq '9'){
-          if($sf1->{content} =~ m/\([\w+-]+\)([\d-]+)/){
-            $valueURI = $1;
-          }
-	       }
-      }
     }
 
     # Sachbegriff (GND)
     if($lab eq 's'){
       $xmlname = 'topic';
-
-      foreach my $sf1 (@{$field->{subfield}}){
-        if($sf1->{label} eq '9'){
-          $authority = 'gnd';
-          if($sf1->{content} =~ m/\([\w+-]+\)([\d-]+)/){
-            $valueURI = $1;
-          }
-         }
-      } 
     }
 
-    # Name (GND)
-    my $name_node;
-    if($lab eq 'p'){    
-
-      foreach my $sf1 (@{$field->{subfield}}){
-        if($sf1->{label} eq '9'){
-          $authority = 'gnd';
-          if($sf1->{content} =~ m/\([\w+-]+\)([\d-]+)/){
-            $valueURI = $1;
-          }
-         }
-      }
-      $name_node = $self->_get_name_node('personal', $val, 1, $valueURI);
-    }
-
-#$self->app->log->info("name node ".$self->app->dumper($name_node));
-
-    # z = Geografika: Geografische Unterteilung (GND)
-    # z = Zeitschlagwort (ohne GND-IDNR)
-    if($lab eq 'z'){
-      $xmlname = 'temporal';
-      # z ohne GND-Nr. = Zeitschlagwort
-      # z mit GND-Nr.: beschreibt das geographische Schlagwort genauer (z.B. Region = Ort/Stadt plus Umgebung, Nordwest, Fluss – s.u.
-      foreach my $sf1 (@{$field->{subfield}}){
-        if($sf1->{label} eq '9'){
-          # FIXME: how to save this?
-          #$xmlname = 'geographic';
-          #$authority = 'gnd';
-          #if($sf1->{content} =~ m/\([\w+-]+\)([\d-]+)/){
-          # $valueURI = $1;
-          #}
-          $skip = 1;
-         }
-      }
-    }
-
-    # should not have 9
     if($lab eq 'f'){
-      $xmlname = 'topic';
-    }
-
-    if($skip){
-      next;
+      if(defined($gnd_id)){
+        # f - Titel: Erscheinungsjahr eines Werkes (GND)
+        next;
+      }else{
+        # f - Formschlagwort (ohne GND-IDNR)
+        $xmlname = 'topic';
+      }
     }
 
     unless(defined($xmlname)){      
@@ -683,15 +677,14 @@ sub get_keyword_node {
       "ui_value" => $val
     };
 
-    if($authority){
-      push @{$kw->{attributes}}, {
-        "xmlname" => "authority",
-        "input_type" => "select",
-        "ui_value" => "gnd"
-      };
-    }
-
-    if($valueURI){
+    # all keywords are always GND    
+    push @{$kw->{attributes}}, {
+      "xmlname" => "authority",
+      "input_type" => "select",
+      "ui_value" => "gnd"
+    };
+    
+    if($gnd_id){
       push @{$kw->{attributes}}, {
         "xmlname" => "authorityURI",
         "input_type" => "input_text",
@@ -700,7 +693,7 @@ sub get_keyword_node {
       push @{$kw->{attributes}}, {
         "xmlname" => "valueURI",
         "input_type" => "input_text",
-        "ui_value" => "http://d-nb.info/gnd/$valueURI"
+        "ui_value" => "http://d-nb.info/gnd/$gnd_id"
       };
     }
 
@@ -717,24 +710,96 @@ sub get_keyword_node {
 }
 
 sub get_note_node {
-  my ($self, $field) = @_;
+  my ($self, $field, $fieldidint) = @_;
 
-  unless($field->{'i1'} eq '-'){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but not -, instead: ".$field->{'i1'}};
-  }
+  # | Field | Indicator  | Subfield |  
+  # | ------|----------  | -------- |  
+  # | 501   | _          | a        |  
+  # | 507   | _          | a, p     |  
+  # | 511   | _          | a        |  
+  # | 512   | _, a       | a        |  
+  # | 517   | _, a, b, c | p        |  
+  # | 525   | _          | p + a    |   
+  my $val;
+  if(($fieldidint eq 511) || ($fieldidint eq 501)){
+    unless($field->{'i1'} eq '-'){
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but indicator not -, instead: ".$field->{'i1'}};
+    }
 
-  foreach my $sf (@{$field->{subfield}}){
-
-    if($sf->{label} eq 'a'){
-      my $val = $sf->{content};
-
-      return {
-        "xmlname" => "note",
-        "input_type" => "input_text",
-        "ui_value" => $val
-      };
+    foreach my $sf (@{$field->{subfield}}){
+      if($sf->{label} eq 'a'){
+        $val = $sf->{content};        
+      }else{
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not a, instead: ".$sf->{label} };
+      }
     }
   }
+
+  if($fieldidint eq 507){
+    unless($field->{'i1'} eq '-'){
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but indicator not -, instead: ".$field->{'i1'}};
+    }
+
+    foreach my $sf (@{$field->{subfield}}){
+      if($sf->{label} eq 'a'){
+        $val = $sf->{content};        
+      }else{
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not a, instead: ".$sf->{label} };
+      }
+    }
+  }
+
+  if($fieldidint eq 512){
+    unless($field->{'i1'} eq '-' || $field->{'i1'} eq 'a'){
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but indicator not - or a, instead: ".$field->{'i1'}};
+    }
+
+    foreach my $sf (@{$field->{subfield}}){
+      if($sf->{label} eq 'a'){
+        $val = $sf->{content};        
+      }else{
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not a, instead: ".$sf->{label} };
+      }
+    }
+  }
+
+  if($fieldidint eq 517){
+    unless($field->{'i1'} eq '-' || $field->{'i1'} eq 'a' || $field->{'i1'} eq 'b' || $field->{'i1'} eq 'c'){
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but indicator not - or a or b or c, instead: ".$field->{'i1'}};
+    }
+
+    foreach my $sf (@{$field->{subfield}}){
+      if($sf->{label} eq 'a'){
+        $val = $sf->{content};        
+      }else{
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not a, instead: ".$sf->{label} };
+      }
+    }
+  }
+
+  if($fieldidint eq 525){
+    $val = '';
+    unless($field->{'i1'} eq '-'){
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but indicator not -, instead: ".$field->{'i1'}};
+    }
+
+    foreach my $sf (@{$field->{subfield}}){
+      if($sf->{label} eq 'a'){
+        $val = $val.$sf->{content};
+      }elsif($sf->{label} eq 'p'){
+        $val = $sf->{content}." ".$val;
+      }else{
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not a or p, instead: ".$sf->{label} };
+      }      
+    }
+
+  }
+  
+  return {
+    "xmlname" => "note",
+    "input_type" => "input_text",
+    "ui_value" => $val
+  };
 
 }
 
@@ -792,8 +857,9 @@ sub get_bkl_nodes {
 sub get_extent_node {
   my ($self, $field) = @_;
 
-  # indicator is ignored for 433
-  #$field->{'i1'}
+  if($field->{'i1'} ne '-'){
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "extent (".$field->{id}.") found, but indicator not -, instead: ".$field->{'i1'}};
+  }
 
   foreach my $sf (@{$field->{subfield}}){
 
@@ -801,16 +867,36 @@ sub get_extent_node {
       my $val = $sf->{content};
 
       return {
-        "xmlname" => "physicalDescription",
-        "input_type" => "node",
-        "children" => [
-          {
-            "xmlname" => "extent",
-            "input_type" => "input_text",
-            "ui_value" => $val
-          }
-        ]
+        "xmlname" => "extent",
+        "input_type" => "input_text",
+        "ui_value" => $val
       };
+    }else{
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "extent (".$field->{id}.") found, but subfield not a, instead: ".$sf->{label} };
+    }
+  }
+
+}
+
+sub get_form_node {
+  my ($self, $field) = @_;
+
+  if($field->{'i1'} ne '-'){
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "form (".$field->{id}.") found, but indicator not -, instead: ".$field->{'i1'}};
+  }
+
+  foreach my $sf (@{$field->{subfield}}){
+
+    if($sf->{label} eq 'a'){
+      my $val = $sf->{content};
+
+      return {
+        "xmlname" => "form",
+        "input_type" => "input_text",
+        "ui_value" => $val
+      };
+    }else{
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "form (".$field->{id}.") found, but subfield not a, instead: ".$sf->{label} };
     }
   }
 
@@ -820,7 +906,7 @@ sub get_date_node {
   my ($self, $field) = @_;
 
   if($field->{'i1'} ne '-' && $field->{'i1'} ne 'a'){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "date (".$field->{id}.") found, but not - or a, instead: ".$field->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "date (".$field->{id}.") found, but indicator not - or a, instead: ".$field->{'i1'}};
   }
 
   my $val;
@@ -860,7 +946,7 @@ sub get_publisher_node {
   my ($self, $field) = @_;
 
   if($field->{'i1'} ne '-' && $field->{'i1'} ne 'a'){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "publisher (".$field->{id}.") found, but not - or a, instead: ".$field->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "publisher (".$field->{id}.") found, but indicator not - or a, instead: ".$field->{'i1'}};
   }
 
   my $val;
@@ -887,7 +973,7 @@ sub get_placeterm_node {
   my ($self, $field) = @_;
 
   if($field->{'i1'} ne '-' && $field->{'i1'} ne 'a'){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "placeterm (".$field->{id}.") found, but not - or a, instead: ".$field->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "placeterm (".$field->{id}.") found, but indicator not - or a, instead: ".$field->{'i1'}};
   }
 
   my $val;
@@ -927,7 +1013,7 @@ sub get_edition_node {
   my ($self, $field) = @_;
 
   unless($field->{'i1'} eq '-'){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "edition statement (".$field->{id}.") found, but not -, instead: ".$field->{'i1'}};
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "edition statement (".$field->{id}.") found, but indicator not -, instead: ".$field->{'i1'}};
   }
 
   foreach my $sf (@{$field->{subfield}}){
@@ -963,6 +1049,8 @@ sub get_titleinfo_node {
   foreach my $sf (@{$field->{subfield}}){
     if($sf->{label} eq 'a'){
       my $val = $sf->{content};
+      $val =~ s/\<//g;
+      $val =~ s/\>//g;
       push @{$titleinfo_node->{children}}, { "xmlname" => "title", "input_type" => "input_text", "ui_value" => $val };
     }else{
       push @{$self->{mapping_alerts}}, { type => 'danger', msg => "title ($field->{id}) found, but subfield not 'a', instead: ".$sf->{label}};
@@ -973,6 +1061,8 @@ sub get_titleinfo_node {
     foreach my $sf (@{$subtitle_field->{subfield}}){
       if($sf->{label} eq 'a'){
         my $val = $sf->{content};
+        $val =~ s/\<//g;
+        $val =~ s/\>//g;
         push @{$titleinfo_node->{children}}, { "xmlname" => "subTitle", "input_type" => "input_text", "ui_value" => $val };
       }else{
         push @{$self->{mapping_alerts}}, { type => 'danger', msg => "subtitle ($subtitle_field->{id}) found, but subfield not 'a', instead: ".$sf->{label}};
@@ -1113,9 +1203,12 @@ sub _get_name_node {
 
   if(defined($name)){
     if($type eq 'personal'){
-      if($name =~ m/\s?(\w+)\s?,\s?([\w\.]+)\s?/){
+      #if($name =~ m/\s?(\w+)\s?,\s?([\w\.]+)\s?/){
+      if($name =~ m/\s?(\w+)\s?,(.+)/){
         my $lastname = $1;
         my $firstname = $2;
+        $firstname =~ s/\<//g;
+        $firstname =~ s/\>//g;
 	      if($firstname ne '...'){
           push @{$node->{children}}, {
             "xmlname" => "namePart",
@@ -1196,16 +1289,6 @@ sub get_role_node {
             ]
         }
       ]
-  };
-}
-
-sub get_subject_node {
-  my ($self) = @_;
-
-  return {
-    "xmlname" => "subject",
-    "input_type" => "node",
-    "children" => []
   };
 }
 
@@ -1347,7 +1430,46 @@ sub get_lang_node {
   };
 }
 
-sub get_recordInfo_node {
+sub get_fixed_license_node {
+
+  my ($self) = @_;
+ 
+  return {
+    "xmlname" => "accessCondition",
+    "input_type" => "input_text",
+    "ui_value" => "http://creativecommons.org/publicdomain/mark/1.0/",
+    "attributes" => [
+      {
+        "xmlname" => "type",
+        "input_type" => "select",
+        "ui_value" => "use and reproduction"
+      }
+    ]
+  };
+
+}
+
+sub get_fixed_note_node {
+
+  my ($self) = @_;
+ 
+  return {
+    "xmlname" => "note",
+    "input_type" => "input_text",
+    "ui_value" => "Bestand der Kartensammlung der Fachbereichsbibliothek Geographie und Regionalforschung, Universität Wien",
+    "attributes" => [
+      {
+        "xmlname" => "type",
+        "input_type" => "select",
+        "ui_value" => "statement of responsibility"
+      }
+    ]
+  };
+
+}
+
+
+sub get_fixed_recordInfo_node {
 
   my ($self) = @_;
  
