@@ -16,10 +16,9 @@
 * [Production method](#production-method)
 * [Format](#format)
 * [Footnotes](#footnotes)
-* [Classification](#classefication)
+* [Classification](#classification)
 * [Keyword chains](#keyword-chains)
 * [Generated (not mapped) fields](#generated-not-mapped-fields)
-* [Open questions](#open-questions)
 
 
 ### Record identifier
@@ -201,30 +200,46 @@ If the role wasn't found then
 *  If field is 100 and indicator is 'a' or '-' then the role is 'author'
 *  If indicator is 'b', the role is 'contributor'
 
+If the name is a GND normalized name, then the attribute `authority=gnd` will be added. If there is a '9' subfield, it's the GND identifier - in this case two attributes are added `authorityURI=http://d-nb.info/gnd/` and `valueURI=http://d-nb.info/gnd/<GND identifier here>`
+
+The names are parsed in a following way: (firstname),trim(lastname)
+Following special characters are removed from the names: '<<','>>'
+Firstname is ignored if it equals to `...`
+
+Eg: `Mechel, Christian <<von>>` would be firstname: `Christian von` lastname: `Mechel`
+
 ###### MAB (JSON)
 ```json
 {
   "id" : "100",
+  "i1" : "b",
+  "i2" : "1",
   "subfield" : [ 
     {
-      "content" : "Bayer, Michael",
-      "label" : "a"
+      "label" : "p",
+      "content" : "Mechel, Christian <<von>>"
     }, 
     {
-      "content" : "[Bearb.]",
+      "content" : "1737-1817",
+      "label" : "d"
+    }, 
+    {
+      "label" : "9",
+      "content" : "(DE-588)116976659"
+    }, 
+    {
+      "content" : "[Hrsg.]",
       "label" : "b"
     }
-  ],
-  "i2" : "1",
-  "i1" : "b"
+  ]
 }
 ```
 
 ###### MODS
 ```xml
-<mods:name type="personal">
-  <mods:namePart type="given">Michael</mods:namePart>
-  <mods:namePart type="family">Bayer</mods:namePart>
+<mods:name authority="gnd" authorityURI="http://d-nb.info/gnd/" type="personal" valueURI="http://d-nb.info/gnd/116976659">
+  <mods:namePart type="given">Christian von</mods:namePart>
+  <mods:namePart type="family">Mechel</mods:namePart>
   <mods:role>
     <mods:roleTerm authority="marcrelator" type="code">edt</mods:roleTerm>
   </mods:role>
@@ -233,7 +248,7 @@ If the role wasn't found then
 
 ###### DC
 ```xml
-<dc:creator>Bayer, Michael</dc:creator>
+<dc:creator>Mechel, Christian von</dc:creator>
 ```
 
 ### Titles
@@ -248,6 +263,8 @@ With any indcator (indicator is the value of 'i1').
 | 345 | 347 | translated |
 | 349 | 351 | translated |
 | 331 | 335 | *none* |
+
+Following special characters are removed: '<<','>>'
 
 ###### MAB (JSON)
 ```json
@@ -532,7 +549,7 @@ With any indcator (indicator is the value of 'i1').
 
 #### 434
 
-Indicator '-' ???
+Indicator always '-' and subfield 'a'.
 
 ###### MAB (JSON)
 ```json
@@ -556,7 +573,7 @@ Indicator '-' ???
 </mods:physicalDescription>
 ```
 
-###### DC ???
+###### DC
 ```xml
 <dc:description>mehrfarb.</dc:description>
 ```
@@ -565,7 +582,7 @@ Indicator '-' ???
 
 #### 435
 
-Indicator '-' ???
+Indicator always '-' and subfield 'a'.
 
 ###### MAB (JSON)
 ```json
@@ -589,7 +606,7 @@ Indicator '-' ???
 </mods:physicalDescription>
 ```
 
-###### DC ???
+###### DC
 ```xml
 <dc:description>86 x 64 cm</dc:description>
 ```
@@ -598,7 +615,15 @@ Indicator '-' ???
 
 #### 501, 507, 511, 512, 517, 525
 
-Indicator '-' ???
+| Field        | Indicator | Subfield |  
+| ------------- | ------------- | ------------- |  
+| 501 | _ | a |  
+| 507 | _ | a, p |  
+| 511 | _ | a |  
+| 512 | _, a | a |  
+| 517 | _, a, b, c | p |  
+| 525 | _ | p + a |  
+
 
 ###### MAB (JSON)
 ```json
@@ -615,12 +640,31 @@ Indicator '-' ???
 }
 ```
 
+###### MAB (JSON) Example for 525 p+a
+```json
+{
+  "id" : "525",
+  "i1" : "-",
+  "i2" : "1",
+  "subfield" : [ 
+    {
+      "label" : "p",
+      "content" : "Aus"
+    }, 
+    {
+      "content" : "Stielers Hand-Atlas",
+      "label" : "a"
+    }
+  ]
+}
+```
+
 ###### MODS
 ```xml
 <mods:note>Mit Schraffen. - Mit statist. Übersicht. - Maßstab in graph. Form (Wr. Klafter). - Nebenkt. Stadtplan Klagenfurt</mods:note>
 ```
 
-###### DC ???
+###### DC
 ```xml
 <dc:description>Mit Schraffen. - Mit statist. Übersicht. - Maßstab in graph. Form (Wr. Klafter). - Nebenkt. Stadtplan Klagenfurt</dc:description>
 ```
@@ -656,7 +700,7 @@ We only map the identifier (the label for the identifier is already available in
 <mods:classification authority="bkl">74.20</mods:classification>
 ```
 
-###### DC ???
+###### DC
 ```xml
 <dc:subject>Deutschland</dc:subject>
 ```
@@ -665,11 +709,81 @@ We only map the identifier (the label for the identifier is already available in
 
 #### 902...947
 
-Entries with the same field number (eg 902) represent one keyword chain. The subfields (eg 'g', 'f',...) define the various types of keywords on the chain.
+Entries with the same field number (eg 902) represent one keyword chain. Each instance of the same field is a separate category. Eg if the field 902 is present 4 times, then there are 4 different categories of this keyword chain. The subfields (eg 'g', 'f',...) define the various types of keywords in the category.
+Eg there can be a keyword chain like this:
+```JSON
+{
+  "id" : "907",
+  "i1" : "-",
+  "i2" : "1",
+  "subfield" : [ 
+      {
+        "label" : "g",
+        "content" : "Hüningen"
+      }, 
+      {
+        "content" : "Region",
+        "label" : "z"
+      }, 
+      {
+        "content" : "(DE-588)4746833-6",
+        "label" : "9"
+      }
+  ]
+}, 
+{
+  "id" : "907",
+  "i1" : "-",
+  "i2" : "1",
+  "subfield" : [ 
+    {
+      "label" : "s",
+      "content" : "Belagerung"
+    }, 
+    {
+      "content" : "(DE-588)4125327-9",
+      "label" : "9"
+    }
+  ]
+}, 
+{
+  "id" : "907",
+  "i1" : "-",
+  "i2" : "1",
+  "subfield" : [ 
+    {
+      "label" : "z",
+      "content" : "Geschichte"
+    }
+  ]
+}, 
+{
+  "id" : "907",
+  "i1" : "-",
+  "i2" : "1",
+  "subfield" : [ 
+    {
+      "content" : "Altkarte",
+      "label" : "f"
+    }
+  ]
+}
+```
+Then this means a keyword chain like:
+`Hüningen, Region; Belagerung; Geschichte; Altkarte`
 
-Sometimes a subfield (eg 'z') can mean different things depending on context.
+In MODS, each keyword chain will be represented as a separate <subject> node with a separate child node for each category. If there are multiple subfields for one category (eg as in the example above, under one '907-' there are 'g', 'z' and '9' ) then these are separated by colon. Eg if 'g' is Hüningen and 'z' Region then it's `Hüningen, Region`. '9' is always an GND identifier - in this case the appropriate attributes will be set ('authority','authorityURI','valueURI' - see [Roles and contributors](#roles-and-contributors))
 
-Guide to subfields:
+In DC, each chain will be represented as one <subject> node, with categories separated by semicolon: `Hüningen, Region; Belagerung; Geschichte; Altkarte`
+
+Sometimes a subfield (eg 'z') can mean different things depending on context (that's why it's twice in the guide). One important example:  
+* z subfield
+  * If the category contains a GND identifier (it's saved in '9' subfield) the the subfield 'z' particularizes the 'g' keyword. Eg. since Hüningen is both a city and a region, 'g' will contain 'Hüningen' and 'z' will contain 'Region' to differentiate it from the city.  
+  * If the category DOES NOT contain GND identifier, then 'z' is a temporal keyword (eg 'History')
+
+The 'h' subfield should also be added after a comma (similar to 'z' as discussed). It cannot stand alone, so it's only necessary to check for it if there is another subfield in the chain.
+
+The MAB/Aleph guide to subfields:
 ```
 902     KETTENGLIED DER 1. SCHLAGWORTKETTE
 
@@ -710,6 +824,18 @@ Beispiele für h-Zusatz:
 
     g Lippe h Fluss
 ```
+
+Here is the subfield <-> child node mapping:
+
+| Subfield        | Child node |
+| ------------- | ------------- |
+| k | `<name type="corporate"><namePart>` |  
+| p | `<name type="personal"><namePart>` |  
+| g | `<geographic>` |  
+| f | `<genre>` |  
+| s | `<topic>` |  
+| z | `<temporal>` if the category does NOT contain GND identifier |  
+
 
 ###### MAB (JSON)
 ```json
@@ -772,18 +898,3 @@ For every map, following parts are generated automatically:
 <mods:accessCondition type="use and reproduction">http://creativecommons.org/publicdomain/mark/1.0/</mods:accessCondition>
 ```
 
-## Open questions
-* 359 - should it not be mapped ??? Example for AC08790778:
-```json
-{
-    "i2" : "1",
-    "id" : "359",
-    "subfield" : [ 
-        {
-            "content" : "zsgest. und gezeichnet von Michael Bayer",
-            "label" : "a"
-        }
-    ],
-    "i1" : "-"
-}
-```
