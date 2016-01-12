@@ -502,7 +502,7 @@ sub mab2mods {
 
     # extent
     if(($fieldid eq '433') || ($fieldid eq '435')){
-      my $extent_node = $self->get_extent_node($field);
+      my $extent_node = $self->get_extent_node($field, $fieldidint);
       push @{$physical_description_node->{children}}, $extent_node;
     }
 
@@ -855,10 +855,13 @@ sub get_bkl_nodes {
 }
 
 sub get_extent_node {
-  my ($self, $field) = @_;
+  my ($self, $field, $fieldidint) = @_;
 
-  if($field->{'i1'} ne '-'){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "extent (".$field->{id}.") found, but indicator not -, instead: ".$field->{'i1'}};
+  # for 435 indicator should be _, for 433 it's ignored
+  if($fieldidint eq 435){
+    if($field->{'i1'} ne '-'){
+      push @{$self->{mapping_alerts}}, { type => 'danger', msg => "extent (".$field->{id}.") found, but indicator not -, instead: ".$field->{'i1'}};
+    }
   }
 
   foreach my $sf (@{$field->{subfield}}){
