@@ -16,7 +16,7 @@
 * [Production method](#production-method)
 * [Format](#format)
 * [Footnotes](#footnotes)
-* [Classification](#classefication)
+* [Classification](#classification)
 * [Keyword chains](#keyword-chains)
 * [Generated (not mapped) fields](#generated-not-mapped-fields)
 
