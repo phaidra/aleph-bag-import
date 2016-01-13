@@ -806,52 +806,57 @@ sub get_note_node {
 sub get_bkl_nodes {
   my ($self, $field, $bklmodel) = @_;
 
-  my $i = $field->{'i1'};
+  unless($field->{'i1'} eq 'f'){
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "classification (".$field->{id}.") found, but indicator not f, instead: ".$field->{'i1'}};
+  }
 
-  my $bkls;
+  my $bkl;
   
-  if($i eq 'f'){
+  if($field->{'i1'} eq 'f'){
 
+    my $text;
+    my $id;
     foreach my $sf (@{$field->{subfield}}){
-
       if($sf->{label} eq 'b'){
-        push @$bkls, {
-          "xmlname" => "classification",
-          "input_type" => "input_text",
-          "ui_value" => $sf->{content},
-          "attributes" => [
-            {
-              "xmlname" => "authority",
-              "input_type" => "select",
-              "ui_value" => "bkl"
-            }
-          ]
-        };       
-      }
-
-      if($sf->{label} eq 'a'){
-        push @$bkls, {
-          "xmlname" => "classification",
-          "input_type" => "input_text",
-          "attributes" => [
-            {
-              "xmlname" => "authorityURI",
-              "input_type" => "select",
-              "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/"
-            },
-            {
-              "xmlname" => "valueURI",
-              "input_type" => "select",
-              "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_10/".$bklmodel->get_tid($self, $sf->{content})
-            }
-          ]
-        };
+        $text = $sf->{content};
+      }elsif($sf->{label} eq 'a'){
+        $id = $sf->{content}; 
+      }else{
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "classification (".$field->{id}.") found, but subfield not a or b, instead: ".$sf->{label};
       }
     }
 
+    $bkl = {
+      "xmlname" => "classification",
+      "input_type" => "input_text",
+      "ui_value" => $text,
+      "attributes" => [
+        {
+          "xmlname" => "authority",
+          "input_type" => "select",
+          "ui_value" => "bkl"
+        }
+      ]
+    };
+
+    if(defined($id)){
+  
+      push @{$bkl->{attributes}}, {
+        "xmlname" => "authorityURI",
+        "input_type" => "select",
+        "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/"
+      };
+
+      push @{$bkl->{attributes}}, {
+        "xmlname" => "valueURI",
+        "input_type" => "select",
+        "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_10/".$bklmodel->get_tid($self, $sf->{content})
+      };
+        
+    }
   }
 
-  return $bkls;
+  return $bkl;
 
 }
 
