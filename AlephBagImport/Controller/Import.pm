@@ -527,10 +527,8 @@ sub mab2mods {
 
     # bkl classification
     if($fieldid eq '700'){
-      if($field->{'i1'} eq 'f'){
-        my $bkl_nodes = $self->get_bkl_nodes($field, $bklmodel);
-        push @mods, @$bkl_nodes;        
-      }
+      my $bkl_node = $self->get_bkl_node($field, $bklmodel);
+      push @mods, $bkl_node;        
     }
 
   }
@@ -743,8 +741,10 @@ sub get_note_node {
     foreach my $sf (@{$field->{subfield}}){
       if($sf->{label} eq 'a'){
         $val = $sf->{content};        
+      }if($sf->{label} eq 'p'){
+        $val = $sf->{content};        
       }else{
-        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not a, instead: ".$sf->{label} };
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not a or p, instead: ".$sf->{label} };
       }
     }
   }
@@ -769,10 +769,10 @@ sub get_note_node {
     }
 
     foreach my $sf (@{$field->{subfield}}){
-      if($sf->{label} eq 'a'){
+      if($sf->{label} eq 'p'){
         $val = $sf->{content};        
       }else{
-        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not a, instead: ".$sf->{label} };
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not p, instead: ".$sf->{label} };
       }
     }
   }
@@ -803,7 +803,7 @@ sub get_note_node {
 
 }
 
-sub get_bkl_nodes {
+sub get_bkl_node {
   my ($self, $field, $bklmodel) = @_;
 
   unless($field->{'i1'} eq 'f'){
@@ -822,7 +822,7 @@ sub get_bkl_nodes {
       }elsif($sf->{label} eq 'a'){
         $id = $sf->{content}; 
       }else{
-        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "classification (".$field->{id}.") found, but subfield not a or b, instead: ".$sf->{label};
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "classification (".$field->{id}.") found, but subfield not a or b, instead: ".$sf->{label}};
       }
     }
 
@@ -850,7 +850,7 @@ sub get_bkl_nodes {
       push @{$bkl->{attributes}}, {
         "xmlname" => "valueURI",
         "input_type" => "select",
-        "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_10/".$bklmodel->get_tid($self, $sf->{content})
+        "ui_value" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_10/".$bklmodel->get_tid($self, $id)
       };
         
     }
@@ -1218,6 +1218,7 @@ sub _get_name_node {
         my $firstname = $2;
         $firstname =~ s/\<//g;
         $firstname =~ s/\>//g;
+        $firstname =~ s/^\s+|\s+$//g;     
 	      if($firstname ne '...'){
           push @{$node->{children}}, {
             "xmlname" => "namePart",
@@ -1232,6 +1233,9 @@ sub _get_name_node {
             ]
           };
 	      }
+        $lastname =~ s/\<//g;
+        $lastname =~ s/\>//g;
+        $lastname =~ s/^\s+|\s+$//g;
         push @{$node->{children}}, {
           "xmlname" => "namePart",
           "input_type" => "input_text",
