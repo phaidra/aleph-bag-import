@@ -674,6 +674,8 @@ Indicator always '-' and subfield 'a'.
 #### 700fa - id 
 #### 700fb - label
 
+If indicator is 'c' or 'g' it is ignored (some classifications from other systems from Germany).
+
 We only map the identifier (the label for the identifier is already available in Phaidra/Vocabulary server).
 
 ###### MAB (JSON)
