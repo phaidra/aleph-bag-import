@@ -621,8 +621,8 @@ Indicator always '-' and subfield 'a'.
 | 507 | _ | a, p |  
 | 511 | _ | a |  
 | 512 | _, a | a |  
-| 517 | _, a, b, c | p |  
-| 525 | _ | p + a |  
+| 517 | _, a, b, c | p + a (with colon) |  
+| 525 | _ | p + a (with space) |  
 
 
 ###### MAB (JSON)
