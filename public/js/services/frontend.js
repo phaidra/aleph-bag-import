@@ -38,11 +38,20 @@ angular.module('frontendService', ['Base64'])
          });
     },
 
-    createBag: function(acnumbers) {
+    deleteAlerts: function(acnumbers) {
 
          return $http({
              method  : 'POST',
-             url     : $('head base').attr('href')+'import/createbag',
+             url     : $('head base').attr('href')+'import/delete_alerts',
+             data: {acnumbers: acnumbers}
+         });
+    },
+
+    createOrUpdateBag: function(acnumbers) {
+
+         return $http({
+             method  : 'POST',
+             url     : $('head base').attr('href')+'import/create_or_update_bag',
              data: {acnumbers: acnumbers}
          });
     }

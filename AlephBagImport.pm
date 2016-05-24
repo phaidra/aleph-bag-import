@@ -109,12 +109,7 @@ sub startup {
             # save token
             my $token = $tx->res->cookie($self->app->config->{authentication}->{token_cookie})->value;
 
-            my $session = $self->stash('mojox-session');
-          $session->load;
-          unless($session->sid){
-            $session->create;
-          }
-          $self->save_token($token);
+            $self->save_token($token);
 
             $self->app->log->info("User $username successfuly authenticated");
             $self->stash({phaidra_auth_result => { token => $token , alerts => $tx->res->json->{alerts}, status  =>  200 }});
@@ -166,7 +161,7 @@ sub startup {
     $session->load;
     if($session->sid){
       # we need mojox-session only for signed-in users
-      if($self->signature_exists){
+      if($self->is_user_authenticated){
         $session->extend_expires;
         $session->flush;
       }else{
@@ -260,7 +255,8 @@ sub startup {
     $auth->route('import/acnumbers')              ->via('post')   ->to('import#addacnumbers');
     $auth->route('import/acnumbers')              ->via('get')    ->to('import#getacnumbers');
     $auth->route('import/fetch')                  ->via('post')   ->to('import#fetch');
-    $auth->route('import/createbag')              ->via('post')   ->to('import#createbag');
+    $auth->route('import/create_or_update_bag')   ->via('post')   ->to('import#create_or_update_bag');
+    $auth->route('import/delete_alerts')          ->via('post')   ->to('import#delete_alerts');
 
     return $self;
 }

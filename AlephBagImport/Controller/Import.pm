@@ -25,7 +25,9 @@ our %role_mapping = (
   "[Zeichner]"          => "drm",
   "[Mitarb.]"           => "ctb",
   "[Kartograph]"        => "ctg",
+  "[Kartogr.]"          => "ctg",
   "[Lithograph]"        => "ltg",
+  "[Lithogr.]"          => "ltg",
   "[Stecher]"           => "egr"
 
 );
@@ -48,6 +50,32 @@ sub home {
 
   $self->render('home');
 };
+
+sub delete_alerts {
+  my $self = shift;
+
+  my $payload = $self->req->json;
+  my $acnumbers = $payload->{acnumbers};
+
+  my $res = { alerts => [], status => 200 };
+
+  if(ref($acnumbers) ne 'ARRAY'){
+   $acnumbers = [$acnumbers];
+  }
+
+  foreach my $acnumber (@{$acnumbers}){
+
+    unless($acnumber =~ /AC(\d)+/g){
+      push @{$res->{alerts}}, { type => "danger", msg =>  "Deleting alerts failed, $acnumber is not an AC number" };
+      next;
+    }
+
+    $self->mango_alephbagimport->db->collection('acnumbers')->update({ac_number => $acnumber},{ '$set' => {mapping_alerts => [], updated => time }},{ multi => 1 });
+
+  }
+
+  $self->render(json => $res, status => $res->{status});
+}
 
 sub import {
   my $self = shift;
@@ -96,7 +124,7 @@ sub getacnumbers {
     #$self->app->log->debug("Checking requests ".$a->{ac_number});
     ($a->{fetch_status}, $a->{fetched}, $a->{requested}) = $self->get_fetch_status($a->{ac_number});
     #$self->app->log->debug("Checking bags ".$a->{ac_number});
-    $a->{bag_created} = $self->get_bag_status($a->{ac_number});
+    ($a->{bag_created},$a->{bag_updated}) = $self->get_bag_status($a->{ac_number});
   }
 
   $self->render(json => { acnumbers => $res }, status => 200);
@@ -119,9 +147,9 @@ sub get_bag_status {
   my $self = shift;
   my $ac = shift;
 
-  my $bag_stat = $self->mango_bagger->db->collection('bags')->find({ac_number => $ac})->sort({created => -1})->fields({created => 1})->next;
+  my $bag_stat = $self->mango_bagger->db->collection('bags')->find({ac_number => $ac})->sort({created => -1})->fields({created => 1, updated => 1})->next;
 
-  return exists($bag_stat->{created}) ? $bag_stat->{created} : undef;
+  return ( $bag_stat->{created}, $bag_stat->{updated} );
 }
 
 sub fetch {
@@ -165,7 +193,7 @@ sub fetch {
   $self->render(json => $res, status => $res->{status});
 }
 
-sub createbag {
+sub create_or_update_bag {
   my $self = shift;
 
   my $payload = $self->req->json;
@@ -185,12 +213,6 @@ sub createbag {
 	    next;
 	  }
 
-	  my $bag_stat = $self->mango_bagger->db->collection('bags')->find({ac_number => $acnumber})->sort({created => -1})->fields({created => 1})->next;
-	  if(exists($bag_stat->{created})){
-	    push @{$res->{alerts}}, { type => "danger", msg =>  "Creating bag failed, Bag with $acnumber already exists, created: ".$self->get_tsISO($bag_stat->{created})};
-	    next;
-	  }
-
 	  $self->app->log->debug("Getting mab for ".$acnumber);
 	  my $md_stat = $self->mango_stage->db->collection('aleph.mab')->find({ac_number => $acnumber})->sort({fetched => -1})->fields({fetched => 1, xmlref2 => 1})->next;
 
@@ -204,15 +226,26 @@ sub createbag {
 	  $self->app->log->debug("Mapping mab (fetched ".$self->get_tsISO($md_stat->{fetched}).") to mods ".$acnumber);
 	  my ($mods, $geo) = $self->mab2mods($mab, $acnumber);
 
-	  $self->app->log->debug("Creating bag ".$acnumber);
+	  
 	  my $project = $self->app->config->{project};
 	  my $folderid = $self->app->config->{folderid};
 	  my $bagid = $project.$folderid.$acnumber.'tif';
-	  my $reply = $self->mango_bagger->db->collection('bags')->insert({ ac_number => $acnumber, bagid => $bagid, file => $acnumber.'.tif', label => $acnumber, folderid => $folderid, tags => [], project => $project, metadata => {mods => $mods, geo => $geo}, status => 'new', assignee => '', created => time, updated => time } );
-	  my $oid = $reply->{oid};
-	  unless($oid){
-	    push @{$res->{alerts}}, { type => "danger", msg => "Inserting bag $bagid failed" };
-  	}
+
+
+          my $bag_stat = $self->mango_bagger->db->collection('bags')->find({ac_number => $acnumber})->sort({created => -1})->fields({created => 1})->next;
+	  if(exists($bag_stat->{created})){
+	    #push @{$res->{alerts}}, { type => "danger", msg =>  "Creating bag failed, Bag with $acnumber already exists, created: ".$self->get_tsISO($bag_stat->{created})};
+	    #next;
+	    $self->app->log->debug("Updating bag[$bagid] ac[$acnumber]");
+	    my $reply = $self->mango_bagger->db->collection('bags')->update({ ac_number => $acnumber, bagid => $bagid, project => $project }, { '$set' => { metadata => {mods => $mods, geo => $geo}, updated => time } } );	   
+	  }else{
+            $self->app->log->debug("Creating bag[$bagid] ac[$acnumber]");
+	    my $reply = $self->mango_bagger->db->collection('bags')->insert({ ac_number => $acnumber, bagid => $bagid, file => $acnumber.'.tif', label => $acnumber, folderid => $folderid, tags => [], project => $project, metadata => {mods => $mods, geo => $geo}, status => 'new', assignee => '', created => time, updated => time } );
+  	    my $oid = $reply->{oid};
+	    unless($oid){
+	      push @{$res->{alerts}}, { type => "danger", msg => "Inserting bag $bagid failed" };
+  	    }
+	  }
 
   }
 
@@ -522,7 +555,7 @@ sub mab2mods {
 
     # keywords 902, 907, 912 … 947g (..s,z,f)    
     if($fieldidint >= 902 && $fieldidint <= 947 && (($fieldidint+3) % 5 == 0 )){
-      push @{$keyword_chains->{fieldidint}}, $self->get_keyword_nodes($field);      
+      push @{$keyword_chains->{$fieldidint}}, $self->get_keyword_nodes($field);      
     }
 
     # bkl classification
@@ -539,7 +572,11 @@ sub mab2mods {
 
     for my $kws (@{$keyword_chains->{$field}}){
       for my $k (@{$kws}){
-        push @{$subject_node->{children}}, $k;
+        if($k->{xmlname} eq 'name'){
+          push @mods, $k;
+        }else{
+          push @{$subject_node->{children}}, $k;
+        }
       }
     }
 
@@ -664,7 +701,7 @@ sub get_keyword_nodes {
       }
     }
 
-    unless(defined($xmlname)){      
+    if(!defined($xmlname) && !defined($name_node)){      
       push @{$self->{mapping_alerts}}, { type => 'danger', msg => "mapping missing for field ".$field->{'id'}." ind[$ind] lab[$lab] val[$val]"};
       next;
     }
@@ -764,16 +801,19 @@ sub get_note_node {
   }
 
   if($fieldidint eq 517){
+    $val = '';
     unless($field->{'i1'} eq '-' || $field->{'i1'} eq 'a' || $field->{'i1'} eq 'b' || $field->{'i1'} eq 'c'){
       push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but indicator not - or a or b or c, instead: ".$field->{'i1'}};
     }
 
     foreach my $sf (@{$field->{subfield}}){
-      if($sf->{label} eq 'p'){
-        $val = $sf->{content};        
+      if($sf->{label} eq 'a'){
+        $val = $val.$sf->{content};
+      }elsif($sf->{label} eq 'p'){
+        $val = $sf->{content}.": ".$val;
       }else{
-        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not p, instead: ".$sf->{label} };
-      }
+        push @{$self->{mapping_alerts}}, { type => 'danger', msg => "note (".$field->{id}.") found, but subfield not a or p, instead: ".$sf->{label} };
+      }      
     }
   }
 
@@ -806,10 +846,16 @@ sub get_note_node {
 sub get_bkl_node {
   my ($self, $field, $bklmodel) = @_;
 
-  unless($field->{'i1'} eq 'f'){
-    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "classification (".$field->{id}.") found, but indicator not f, instead: ".$field->{'i1'}};
+  if($field->{'i1'} eq 'f'){
+    # ok
+  }elsif($field->{label} eq 'c'){
+    # ignore
+  }elsif($field->{label} eq 'g'){
+    # ignore
+  }else{
+    push @{$self->{mapping_alerts}}, { type => 'danger', msg => "classification (".$field->{id}.") found, but indicator not f (or c, or g), instead: ".$field->{'i1'}};
   }
-
+  
   my $bkl;
   
   if($field->{'i1'} eq 'f'){
@@ -820,7 +866,7 @@ sub get_bkl_node {
       if($sf->{label} eq 'b'){
         $text = $sf->{content};
       }elsif($sf->{label} eq 'a'){
-        $id = $sf->{content}; 
+        $id = $sf->{content};       
       }else{
         push @{$self->{mapping_alerts}}, { type => 'danger', msg => "classification (".$field->{id}.") found, but subfield not a or b, instead: ".$sf->{label}};
       }

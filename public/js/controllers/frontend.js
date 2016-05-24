@@ -87,6 +87,7 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
         );
     };
 
+
     $scope.getACNumbers = function(){
         var promise = FrontendService.getACNumbers();
         $scope.loadingTracker.addPromise(promise);
@@ -139,18 +140,50 @@ app.controller('FrontendCtrl', function($scope, $window, $modal, $log, FrontendS
         );
     };
 
-    $scope.createBagSelected = function(){
+        $scope.deleteAlertsSelected = function(){
+        var sel = [];
+  for (var i = 0; i < $scope.acnumbers.length; i++) {
+    if($scope.acnumbers[i].selected == true){
+      sel.push($scope.acnumbers[i].ac_number);
+          }
+        }
+        $scope.deleteAlerts(sel);
+    }
+
+
+    $scope.deleteAlerts = function(acnumbers){
+        var promise = FrontendService.deleteAlerts(acnumbers);
+        $scope.loadingTracker.addPromise(promise);
+        promise.then(
+          function(response) {
+            $scope.form_disabled = false;
+            $scope.alerts = response.data.alerts;
+            $scope.getACNumbers();
+            $window.location.reload();
+          }
+          ,function(response) {
+            $scope.form_disabled = false;
+            if(response.data){
+              if(response.data.alerts){
+                $scope.alerts = response.data.alerts;
+              }
+            }
+          }
+        );
+    };
+
+    $scope.createOrUpdateBagSelected = function(){
       var sel = [];
       for (var i = 0; i < $scope.acnumbers.length; i++) {
         if($scope.acnumbers[i].selected == true){
 	   sel.push($scope.acnumbers[i].ac_number);
         }
       }
-	$scope.createBag(sel);
+	$scope.createOrUpdateBag(sel);
     }
 
-    $scope.createBag = function(acnumbers){
-        var promise = FrontendService.createBag(acnumbers);
+    $scope.createOrUpdateBag = function(acnumbers){
+        var promise = FrontendService.createOrUpdateBag(acnumbers);
         $scope.loadingTracker.addPromise(promise);
         promise.then(
           function(response) {
