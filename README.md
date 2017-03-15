@@ -8,7 +8,7 @@
 * [Titles](#titles)
 * [Constituent title](#constituent-title)
 * [Series title](#series-title)
-* [Edition statement](#edition statement)
+* [Edition statement](#edition-statement)
 * [Place of publication](#place-of-publication)
 * [Publisher](#publisher)
 * [Date of publication](#date-of-publication)
